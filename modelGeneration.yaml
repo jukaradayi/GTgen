@@ -1,0 +1,41 @@
+Graph:
+    generate: True # choose to generate or not
+    #out_path: "./model.weight"
+    params:
+        #model: "ErdosRenyi"
+        model: "GNM"
+        #model: 'HavelHakimi'
+        #model: 'EdgeSwitchingMarkovChain'
+        use_dataset: True
+        #dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.weight.d"
+        dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/taxi_deg_seq.txt"
+        n: 30046 # TODO should be set by using dataset
+        n_anomaly: 25 # TODO: voir si je trouve des valeurs qui font casser 
+        m_anomaly: 1025
+        N_switch: 40000000
+        #p: 20 # for ErdosRenyi
+        #m: 149582 not used when dataset fixed
+        #seq: [1,1,2,3,1] for HavelHakimi/EdgeSwitchingMarkovChain
+        seq: [1,1,2,3,1] # TODO think of another way to pass degree sequence, might get untractable for long sequences...
+    anomaly:
+        params:
+            N: 2 # number of anomaly to add
+            model: "clique"
+            #n: 10
+            #m: 20
+            seq: [0,2,2,2,0] # should have the same length as model degree sequence # TODO same as graph_params_seq
+TimeSerie:
+    generate: True
+    #out_path: "./model.ts"
+    params:
+        model: "TSFromDataset"
+        #model: "IidNoise"
+        dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.ts.d" 
+        #duration: 20000 # for Iid Noise
+        #bound_up: 5 # upper bound # for Iid Noise
+        #bound_down: 0 # lower bound # for Iid Noise
+        #has_seasonality: False # TODO implement ? 
+    anomaly:
+        params:
+            type: "outlier" # other things that could be implemented: temporal change, seasonal level shift 
+            N: 2 # number of anomaly to add
