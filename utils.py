@@ -97,14 +97,26 @@ def check_config(config):
         assert n_interaction_ts ==  n_interaction_g, f"time series interactions {n_interaction_ts}, graph interactions {n_interaction_g}"
    
 def _read_dataset(dataset):
-        counter = dict()
-        distribution = []
-        with open(dataset, 'r') as fin: ## put other option to read gz
-            data = fin.readlines()
-            for line in data:
-                val, weight = line.strip().split()
-                distribution.append((int(val), int(weight)))
-                counter[int(val)] = int(weight)
-        return counter, distribution
+    counter = dict()
+    distribution = []
+    with open(dataset, 'r') as fin: ## put other option to read gz
+        data = fin.readlines()
+        for line in data:
+            val, weight = line.strip().split()
+            distribution.append((int(val), int(weight)))
+            counter[int(val)] = int(weight)
+    return counter, distribution
 
+def read_degrees(dataset):
+    degree_list = []
+    idx=0
+    vertex2vidx = dict()
+    with open(dataset, 'r') as fin:
+        data = fin.readlines()
+        for line in data:
+            vertex, degree = line.strip().split(' ')
+            vertex2vidx[idx] = vertex
+            idx += 1
+            degree_list.append((idx, int(degree)))
+    return vertex2vidx, degree_list
 
