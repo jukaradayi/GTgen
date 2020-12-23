@@ -31,10 +31,14 @@ class AbstractGraphGenerator():
     def is_realisable():
         raise NotImplementedError
 
+    #@parameter
+    def degree_list(self):
+        degree_list = []
+        for u in self.graph.iterNodes():
+            degree_list.append((u,self.graph.degree(u)))
+        return degree_list
+
     def write_graph(self, weights = None):
-        ## TODO random weight
-        # sort nodes
-        #sum_weight = 0
         if weights is not None:
             iterator = zip(self.graph.iterEdges(), weights)
         else:
@@ -51,37 +55,9 @@ class AbstractGraphGenerator():
     def run(self):
         raise NotImplementedError
 
-class ConfigurationModel(AbstractGraphGenerator):
-    """ Implementation of configuration model
-    """
-    def __init__(self, **kwargs):
-        self.seq = kwargs['seq']
-        self.anomaly_seq = kwargs['anomaly_seq']
-        self.anomaly_type = kwargs['anomaly_type']
-        raise NotImplementedError
-
-    def _clique(self):
-        ## TODO: Idée à discuter avec Matthieu: on part de 2 graphes, un avec aucun lien G0, un avec tous GN, 
-        # à chaque fois qu'on ajoute un lien dans G0, on enlève ce lien dans GN => on a toutes les cliques possibles,
-        # reste à trouver celle de la taille qu'on veut (probably long)
-        # possiblement très overkill
-        raise NotImplementedError
-
-    def _configuration_run(self):
-        raise NotImplementedError
-
-    def run(self):
-        # generate anomaly first then feed into model
-        anomaly = getattr(self, kwargs['anomaly_type'])
-        self.anomaly(self.graph)
-        
-        self._configuration_run()
-        raise NotImplementedError
-
 class EdgeSwitchingMarkovChain(AbstractGraphGenerator):
     """ Wrapper of Networkit EdgeSwitchingMarkovChainGenerator 
         Also called 'configuration model' in networkit.
-        TODO
         Parameters:
         -----------
         degreeSequence : vector[count]
@@ -101,7 +77,6 @@ class EdgeSwitchingMarkovChain(AbstractGraphGenerator):
 
 class HavelHakimi(AbstractGraphGenerator):
     """ Wrapper of Networkit HavelHakimi
-        TODO
         Parameters:
         -----------
         sequence : vector
@@ -110,7 +85,6 @@ class HavelHakimi(AbstractGraphGenerator):
             If true, generate the graph even if the degree sequence is not realizable. Some nodes may get lower degrees than requested in the sequence.
     """
 
-    #def __init__(self, **kwargs):
     def __init__(self, sequence , N_switch, logger):
         self.logger = logger
         self.sequence = sequence
@@ -119,26 +93,7 @@ class HavelHakimi(AbstractGraphGenerator):
         self.graph = None
         #self.anomaly_sequence = kwargs['anomaly']['sequence'] # should be the same length as self.sequence, with 0s
 
-    #def _havelhakimi(self):
-    #    """ python reimplementation of networkit'havel-hakimi algo -- overkill .. ? """
-    #    N = len(self.sequence)
-    #    numDegVals = max(sequence)
-    #    from collections import  defaultdict
-    #    nodesByDeficit = defaultdict(list)
-    #    for v, seq_v in enumerate(self.sequence):
-    #        nodeByDeficit[seq_v].append((seq_v, v))
-
-    #    maxDeficit = numDegVals - 1
-
-
-    #    while maxDeficit:
-    #        while len(nodesByDeficit[maxDeficit]) > 0:
-    #            (deficit, currentVertex) = nodesByDeficit[maxDeficit]
-    #            nodesByDeficit.pop(0)
-
-    #            currentNeighborList = maxDeficit
-
-    def _edge_switch(self):
+    def _edge_swap(self):
         """ shuffle to make 'random' graph'"""
         self.logger.info('switching {} edges in Havel Hakimi graph'.format(self.N_switch))
         # regarder genbip swaps pour configuration model
@@ -151,8 +106,6 @@ class HavelHakimi(AbstractGraphGenerator):
             if n%10000000 == 0 and n>0:
                 self.logger.debug('{} switches dones'.format(n))
             #((e1_n1, e1_n2), (e2_n1, e2_n2)) = gt.randomEdges(self.graph, 2)
-            #(e1_n1, e1_n2) = self.graph.randomEdge()
-            #(e2_n1, e2_n2) = self.graph.randomEdge()
             (e1_n1, e1_n2) = nk.graphtools.randomEdge(self.graph, uniformDistribution=True)
             (e2_n1, e2_n2) = nk.graphtools.randomEdge(self.graph, uniformDistribution=True)
 
@@ -160,16 +113,8 @@ class HavelHakimi(AbstractGraphGenerator):
             # check if didn't pick two times the same edge 
             # or if switched edge already exists
             if ((e1_n1 == e2_n1)              or (e1_n1 == e2_n2)               or (e1_n2 == e2_n1)               or (e1_n2 == e2_n2)                or self.graph.hasEdge(e1_n1, e2_n2)               or self.graph.hasEdge(e2_n1, e1_n2)):
-                #print(n)
-                #ipdb.set_trace()
-                #n_attempt+=1
                 continue
             else:
-                #print('took {}s, {} attempt for successfule loop'.format(time.time() -t1, n_attempt))
-                #n_attempt = 0
-                #t1 = time.time()
-                #self.logger.debug('took {} to switch'.format(n_attempt))
-                #n_attempt = 0
                 self.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
                 n += 1
         t2 = time.time()
@@ -181,7 +126,6 @@ class HavelHakimi(AbstractGraphGenerator):
 
 class ErdosRenyi(AbstractGraphGenerator):
     """ Wrapper of Networkit ErdosRenyiGenerator
-        TODO
         Parameters:
            -----------
            nNodes : count
@@ -193,7 +137,6 @@ class ErdosRenyi(AbstractGraphGenerator):
            selfLoops : bool
                Allows self-loops to be generated (only for directed graphs)
     """   
-    #def __init__(self, n, p):
     def __init__(self, **kwargs):
         self.n = kwargs['n']
         self.p = kwargs['p']
@@ -217,44 +160,10 @@ class GNM(AbstractGraphGenerator):
         seed: int
             random seed
     """
-    def __init__(self, n, m):
-        #self.n = kwargs['n']
-        #self.m = kwargs['m'] +1
+    def __init__(self, n, m, seed=None):
         self.n = n
-        #self.m = m + 1
-        # TODO remove just for anomaly testing
         self.m = m #n * (n-1) / 2
-        #self.seed = seed if not None else None
-
-    def write_graph(self, out_path, weights):
-        ## TODO random weight
-        # sort nodes
-        #sum_weight = 0
-        if weights is not None:
-            print(len(self.graph.edges()))
-            print(len(weights))
-            iterator = zip(self.graph.edges(), weights)
-        else:
-            iterator = self.graph.iterEdges()
-        with open(out_path, 'w') as fout:
-
-
-            for ((u, v), weight) in iterator:
-                # don't write if weight is 0
-                if weight <= 0:
-                    continue
-
-                if u<v :
-                    fout.write(f'{u},{v} {weight}\n')
-                else:
-                    fout.write(f'{v},{u} {weight}\n')
-
-    #@parameter
-    def degree_list(self):
-        degree_list = []
-        for u in self.graph.iterNodes():
-            degree_list.append((u,self.graph.degree(u)))
-        return degree_list
+        #self.seed = seed if not None else None ## TODO
 
     @staticmethod ## 
     def _clique(G):
@@ -270,21 +179,15 @@ class GNM(AbstractGraphGenerator):
         return G
 
     def run(self):
-        #if directed:
-        #    G = nx.DiGraph()
-        #else:
-        #    G = nx.Graph()
+        """ can add nodes to existing GNM, and create GNM of these nodes """ 
         self.graph = nk.graph.Graph() # .Graph()?   
-        #G.add_nodes_from(range(n))
         self.graph.addNodes(self.n) 
 
         if self.n == 1:
             return self.graph
         max_edges = self.n * (self.n - 1) / 2.0
-        #if not directed:
-        #    max_edges /= 2.0
         if self.m >= max_edges:
-            return GNM._clique(self.graph) # TODO reimplem nk .. ? 
+            return GNM._clique(self.graph)
 
         nlist = range(self.n)
         edge_count = 0
@@ -297,69 +200,9 @@ class GNM(AbstractGraphGenerator):
             else:
                 self.graph.addEdge(u, v)
                 edge_count = edge_count + 1
-        #return G
-
-
-    #def degree_seq(self):
-    #    G.degree # in networkX .. networkit ?
-    #    raise NotImplementedError
-
-    #def run(self):
-    #    self.graph = self.generate()#gnm_random_graph(self.n, self.m, seed=None, directed=False)
-
-
-
-#class GNM_old(AbstractGraphGenerator):
-#    """ Wrapper of Networkx gnm_random_graph
-#    Parameters:
-#    -----------
-#        n: int
-#            number of nodes
-#        m: int
-#            number of edges
-#        seed: int
-#            random seed
-#    """
-#    def __init__(self, n, m):
-#        #self.n = kwargs['n']
-#        #self.m = kwargs['m'] +1
-#        self.n = n
-#        #self.m = m + 1
-#        # TODO remove just for anomaly testing
-#        self.m = m #n * (n-1) / 2
-#        #self.seed = seed if not None else None
-#
-#    def write_graph(self, out_path, weights):
-#        ## TODO random weight
-#        # sort nodes
-#        #sum_weight = 0
-#        if weights is not None:
-#            print(len(self.graph.edges()))
-#            print(len(weights))
-#            iterator = zip(self.graph.edges(), weights)
-#        else:
-#            iterator = self.graph.iterEdges()
-#        with open(out_path, 'w') as fout:
-#
-#
-#            for ((u, v), weight) in iterator:
-#                # don't write if weight is 0
-#                if weight <= 0:
-#                    continue
-#
-#                if u<v :
-#                    fout.write(f'{u},{v} {weight}\n')
-#                else:
-#                    fout.write(f'{v},{u} {weight}\n')
-#
-#    def degree_seq(self):
-#        G.degree # in networkX .. networkit ?
-#        raise NotImplementedError
-#
-#    def run(self):
-#        self.graph = gnm_random_graph(self.n, self.m, seed=None, directed=False)
 
 class FromDataWithAnomaly(AbstractGraphGenerator):
+    ## TODO Move to other file
     """
         
         I tirer noir données réelles 
@@ -372,6 +215,15 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         III2 si III1 marche pas, mélanger bleu ou rouge (avec proba de choix bleu ou rouge)
         
         III3 si III2 marche pas, switch spécifiquement 
+
+        Implémentation:
+        3 graphes : anomalie(s), normal & global (global = normal + anomalie)
+        Dans l'implémentation, on part de la séquence global, on construit l'anomalie puis on construit le global
+
+        Stocker graphes anomalies et graphe normal séparément, jamais construire graphe global, seulement garder en mémoire où "brancher" les noeds de l'anomalie sur le normal
+
+        an_* = anomaly
+        norm_* = normal graph
     """
     def __init__(self, degree_list,
             numberOfAnomaly,
@@ -391,7 +243,7 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         self.n_anomaly = n_anomaly
         self.m_anomaly = m_anomaly # pick erdos renyi for anomaly
         self.anomaly_seq = dict()
-        self.G_anomaly = None # graph
+        self.G_anomalies = [] # graph
 
         # normal graph
         self.G_normal = None
@@ -405,16 +257,21 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
     def _generate_anomaly(self):
         """ Generate anomly as Erdos Renyi, using Networkx GNM model """
         ## TODO allow other models .. ?
-        for i in range(self.numberOfAnomaly):
-            self.G_anomaly = GNM(self.n_anomaly, self.m_anomaly)
-            self.G_anomaly.run()
+        # draft : G_anomalies is a list of GNMs
+        # to get normality degree, iterate over list than degree list
+        # nk2node et node2nk : keep track of index in list + index of node
+        # 
+        # #TODO for i in range(self.numberOfAnomaly):
+        # instantiate and generate all anomalies
+        for an_i in range(self.numberOfAnomaly):
+            self.G_anomalies.append(GNM(self.n_anomaly, self.m_anomaly))
+            self.G_anomalies[an_i].run()
 
     def _get_normality_degree_seq(self):
         """ Get degree sequence for 'normal' graph, by placing anomaly in 
             global graph degree sequence, and substracting the anomaly 
             degrees
         """
-        ### TODO get taxonomy normal/anomaly
         #self.anomaly_seq = self.G.seq # todo later after selecting 
         #ipdb.set_trace()
         has_duplicate_node = True
@@ -424,13 +281,25 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         # the nodes that have a degree high enough.
         # pick again if two anomaly nodes get mapped to the same node in 
         # global graph.
-        degree_list = self.G_anomaly.degree_list()
+        an_degree_list = [] ## TODO Confusion degree_list et self.degree_list ... 
+        an_degree_pos = [] # index of first node of each graph 
+        for an_i in range(self.numberOfAnomaly): ## TODO do sequentially or "all at once" : if one anomaly placed, don't try again from scratch ? 
+            an_degree_pos.append(len(an_degree_list))
+            an_degree_list += self.G_anomalies[an_i].degree_list() # TODO concat degree lists
+        # TODO for n_anomaly
+
+        # plug all anomalies nodes to normal graph degree series
+        # start from scratch if two anomaly nodes end up on the same normal graph node
         while (has_duplicate_node):
-            #for node, degree in self.G_anomaly.graph.degree: # TODO remonter degree a attribut de GNM
-            for node, degree in degree_list: # TODO remonter degree a attribut de GNM
+            for (index, (node, degree)) in enumerate(an_degree_list): # TODO remonter degree a attribut de GNM
                 # get nodes with degree high enough to place current anomaly
                 # node 
+                anomaly_index = np.where(np.array(an_degree_pos) <= index)[0][-1] # TODO encore un peu cradot
+
+                # get all available nodes with high enough degree in normal graph
+                # pick one at random
                 candidate_indices = np.where(self.degree_list[:,1] > degree)
+
                 node_candidate = np.random.choice(candidate_indices[0])
 
                 # if node has already been chosen, pick all nodes again
@@ -438,24 +307,26 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                     node_selection = []
                     has_duplicate_node = True
                     break
+
                 node_selection.append((node_candidate, self.degree_list[node_candidate,0]))
+
             else:
                 
                 # when nodes are picked, substract anomaly degrees 
                 has_duplicate_node = False
                 #for ((nx_node, an_degree), (nG_idx, node)) in zip(self.G_anomaly.graph.degree, node_selection):
-                for ((nx_node, an_degree), (nG_idx, node)) in zip(degree_list, node_selection):
+                for ((nx_node, an_degree), (node_idx, node)) in zip(an_degree_list, node_selection):
                     # set mapping from global to networkx node index
-                    self.node2nx[node] = nx_node
-                    self.nx2node[nx_node] = node
+                    self.node2nx[node] = (anomaly_index, nx_node) # TODO replace nx_node by nk_node
+                    self.nx2node[(anomaly_index, nx_node)] = node
                     # substrace degrees
-                    self.degree_list[nG_idx,1] -= an_degree # substract degree from anomaly
+                    self.degree_list[node_idx,1] -= an_degree # substract degree from anomaly
 
     def _generate_normality(self):
         """ Generate 'normal' graph using Havel-Hakimi algorithm + edge switching"""
         self.G_normal = HavelHakimi(self.degree_list[:,1], self.N_switch, self.logger)
         self.G_normal.run()
-        self.G_normal._edge_switch() ## TODO migrate edge switch in "run" when edge switch flag
+        self.G_normal._edge_swap() ## TODO migrate edge switch in "run" when edge switch flag
 
     def _check_multiple_edges(self):
         """ check if Global graph has multiple edges """
@@ -468,14 +339,16 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
             # if any of those nodes are not in G_anomaly,
             # current edge is not a multiple edge.
             if (node1 in self.node2nx and node2 in self.node2nx): 
-                nx_node1 = self.node2nx[node1]
-                nx_node2 = self.node2nx[node2]
+                # TODO here get (graph_index, nx_node) 
+                # TODO check that both nodes are in same graph
+                an_index1, nx_node1 = self.node2nx[node1]
+                an_index2, nx_node2 = self.node2nx[node2]
 
                 # check if current edge already exists in anomaly
-                if ((nx_node1, nx_node2) in self.G_anomaly.graph.edges() 
-                    or (nx_node2, nx_node1) in self.G_anomaly.graph.edges()):
+                # TODO get graph then check condition on graph
+                if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge(nx_node1, nx_node2)): 
                     has_multiple_edge = True
-                    multiple_edge_list.append((node1, node2, nx_node1, nx_node2))
+                    multiple_edge_list.append(((node1, node2), (an_index1, (nx_node1, nx_node2)))) # TODO cradot
                     if self.break_when_multiple:
                         self.logger.info('detected multiple edge')
                         break
@@ -493,50 +366,14 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         acceptable_swap = False
         while acceptable_swap == False:
             (e2_n1, e2_n2) = nk.graphtools.randomEdge(G, uniformDistribution=True)
-            if ((e1_n1 == e2_n1)
-             or (e1_n1 == e2_n2)
-             or (e1_n2 == e2_n1)
-             or (e1_n2 == e2_n2)
-             or G.hasEdge(e1_n1, e2_n2)
-             or G.hasEdge(e2_n1, e1_n2)):
+            if ((e1_n1 == e2_n1) or (e1_n1 == e2_n2) or (e1_n2 == e2_n1) or (e1_n2 == e2_n2)
+             or G.hasEdge(e1_n1, e2_n2) or G.hasEdge(e2_n1, e1_n2)):
                 acceptable_swap = False
-                #ipdb.set_trace()
-                #n_attempt+=1
-                #continue
             else:
                 acceptable_swap = True
-            #print('took {}s, {} attempt for successfule loop'.format(time.time() -t1, n_attempt))
-            #n_attempt = 0
-            #t1 = time.time()
-            #self.logger.debug('took {} to switch'.format(n_attempt))
-            #n_attempt = 0
 
-        #raise NotImplementedError
         return (e2_n1, e2_n2) 
     
-    #def _swap_anomaly(e1_n1, e1_n2):
-    #    """ switch an edge in the anomaly graph"""
-    #    # boolean to be set to true when an edge swap has been accepted
-    #    acceptable_swap = False
-    #    while (not acceptable_swap):
-    #        # pick two edges at random
-    #        #(e1_n1, e1_n2) = np.random.choice(self.G_anomaly.edges())
-    #        (e1_n1, e2_n2) = an_node1
-    #        (e2_n1, e2_n2) = np.random.choice(self.G_anomaly.edges())
-
-    #        # swap them if the swapped edges don't already exist
-    #        if (((e1_n1, e2_n2) not in self.G_anomaly.edges())
-    #         and ((e2_n1, e1_n2) not in self.G_anomaly.edges())):
-    #            self.G_anomaly.add_edge((e2_n1, e1_n2))
-    #            self.G_anomaly.add_edge((e1_n1, e2_n2))
-    #            self.G_anomaly.remove_edge((e1_n1, e1_n2))
-    #            self.G_anomaly.remove_edge((e2_n1, e2_n2))
-
-    #            # accept swap
-    #            acceptable_swap = True
-
-        return (e2_n1, e2_n2)
-
     def swap_multiedges(self, multiple_edges):
         """ If multiple edges are detected between normal graph and anomaly, 
             target them specifically when switching
@@ -545,51 +382,40 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         self.logger.info('{} edges left'.format(len(multiple_edges)))
         while (len(multiple_edges) > 0):
             #((node1, node2, an_node1, an_node2)) = np.random.choice(multiple_edge_list)
+            # pick an edge at random
             edge_index = np.random.randint(low=0, high=len(multiple_edges))
-            ((norm_n1, norm_n2, an_n1, an_n2)) = multiple_edges[edge_index] 
+            ((norm_n1, norm_n2), (an_index, (an_n1, an_n2))) = multiple_edges[edge_index] 
             p = random.uniform(0, 1)
 
             # choose at random which of the normal graph or anomaly to update
             if p>=0.5: 
-                (e1_n1, e1_n2) = (norm_n1, norm_n2)
+                #(e1_n1, e1_n2) = (norm_n1, norm_n2)
                 (e2_n1, e2_n2) = self._swap_edge((norm_n1, norm_n2), self.G_normal.graph)
 
-                # check if swap is not multiple link with anomaly    
-                if e1_n1 in self.node2nx and e2_n2 in self.node2nx:
-                    if (self.G_anomaly.graph.hasEdge(self.node2nx[e1_n1], self.node2nx[e2_n2]) 
-                             or self.G_anomaly.graph.hasEdge(self.node2nx[e2_n1], self.node2nx[e1_n2])):
+                # check if swap is not multiple link with anomaly
+                # TODO should remove check for norm_n1, assum exist since multiple edge :)
+                if ((norm_n1 in self.node2nx and e2_n2 in self.node2nx and norm_n2 in self.node2nx and e2_n1 in self.node2nx) 
+                    and (self.G_anomalies[an_index].graph.hasEdge(self.node2nx[norm_n1][1], self.node2nx[e2_n2][1])
+                        or self.G_anomalies[an_index].graph.hasEdge(self.node2nx[e2_n1][1], self.node2nx[norm_n2][1]))):
                         # don't do swap, pick new edge again ...
                         continue 
-                        #    multiple_edge_list.append((self.nx2node[(e1_n1, e2_n2)], (e1_n1, e2_n2)))
-                        #if self.G_anomaly.graph.hasEdge(self.nx2node[(e2_n1, e1_n2)]):
-                        #    multiple_edge_list.append((self.nx2node[(e1_n1, e2_n2)], (e1_n1, e2_n2)))
                 else:
-                    self.G_normal.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
+                    self.G_normal.graph.swapEdge(norm_n1, norm_n2, e2_n1, e2_n2)
                     multiple_edges.pop(edge_index)
 
             else:
-                (e1_n1, e1_n2) = (an_n1, an_n2)
-                (e2_n1, e2_n2) = self._swap_edge((an_n1, an_n2), self.G_anomaly.graph) ## TODO clean coherence arguments
+                #(e1_n1, e1_n2) = (an_n1, an_n2) # un peu cradot
+                (e2_n1, e2_n2) = self._swap_edge((an_n1, an_n2), self.G_anomalies[an_index].graph) ## TODO clean coherence arguments
 
                 # check if swap is not multiple link with normal graph 
-                if (self.G_normal.graph.hasEdge(self.nx2node[e1_n1], self.nx2node[e2_n2]) 
-                       or self.G_normal.graph.hasEdge(self.nx2node[e2_n1], self.nx2node[e1_n2])):
+                if (self.G_normal.graph.hasEdge(self.nx2node[(an_index, an_n1)], self.nx2node[(an_index, e2_n2)]) 
+                       or self.G_normal.graph.hasEdge(self.nx2node[(an_index, e2_n1)], self.nx2node[(an_index, an_n2)])):
                     # don't do swap, pick new edge again ...
                     continue
-                    #    multiple_edge_list.append((self.nx2node[(e1_n1, e2_n2)], (e1_n1, e2_n2)))
-                    #if self.G_normal.graph.hasEdge(self.nx2node[(e2_n1, e1_n2)]):
-                    #    multiple_edge_list.append((self.nx2node[(e1_n1, e2_n2)], (e1_n1, e2_n2)))
                 else:
-                    self.G_anomaly.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
+                    self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
                 multiple_edges.pop(edge_index)
             self.logger.info('{} edges left'.format(len(multiple_edges)))
-
-
-
-            # check new edge doesn't already exist
-            # maybe we messed up hard and created 2 multiple links from 1 ... ## TODO in that case reject change ??  
-
-            #_check_new_edge()
 
     def run(self):
         self.logger.info('generating anomaly')

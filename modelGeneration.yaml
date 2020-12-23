@@ -10,7 +10,7 @@ Graph:
         #dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.weight.d"
         dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/taxi_deg_seq.txt"
         n: 30046 # TODO should be set by using dataset
-        numberOfAnomaly: 1
+        numberOfAnomalies: 1
         n_anomaly: 50 # TODO: voir si je trouve des valeurs qui font casser 
         m_anomaly: 500
         N_switch: 1000 #300000 #40000000
