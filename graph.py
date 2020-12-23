@@ -295,7 +295,6 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                 # get nodes with degree high enough to place current anomaly
                 # node 
                 anomaly_index = np.where(np.array(an_degree_pos) <= index)[0][-1] # TODO encore un peu cradot
-
                 # get all available nodes with high enough degree in normal graph
                 # pick one at random
                 candidate_indices = np.where(self.degree_list[:,1] > degree)
@@ -315,7 +314,10 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                 # when nodes are picked, substract anomaly degrees 
                 has_duplicate_node = False
                 #for ((nx_node, an_degree), (nG_idx, node)) in zip(self.G_anomaly.graph.degree, node_selection):
-                for ((nx_node, an_degree), (node_idx, node)) in zip(an_degree_list, node_selection):
+                for (index, ((nx_node, an_degree), (node_idx, node))) in enumerate(zip(an_degree_list, node_selection)):
+                    # get nodes with degree high enough to place current anomaly
+                    # node 
+                    anomaly_index = np.where(np.array(an_degree_pos) <= index)[0][-1] # TODO encore un peu cradot
                     # set mapping from global to networkx node index
                     self.node2nx[node] = (anomaly_index, nx_node) # TODO replace nx_node by nk_node
                     self.nx2node[(anomaly_index, nx_node)] = node
@@ -333,7 +335,7 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
 
         # keep track of multiple edges in case we can to switch them later
         has_multiple_edge = False
-        multiple_edge_list = []
+        multiple_edges = []
         for (node1, node2) in self.G_normal.graph.iterEdges():
 
             # if any of those nodes are not in G_anomaly,
@@ -348,13 +350,13 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                 # TODO get graph then check condition on graph
                 if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge(nx_node1, nx_node2)): 
                     has_multiple_edge = True
-                    multiple_edge_list.append(((node1, node2), (an_index1, (nx_node1, nx_node2)))) # TODO cradot
+                    multiple_edges.append(((node1, node2), (an_index1, (nx_node1, nx_node2)))) # TODO cradot
                     if self.break_when_multiple:
                         self.logger.info('detected multiple edge')
                         break
-        if len(multiple_edge_list) > 0:
+        if len(multiple_edges) > 0:
             self.logger.info('detected multiple edge')
-        return multiple_edge_list
+        return multiple_edges
     
     @staticmethod
     def _swap_edge(node1, G):
@@ -413,7 +415,11 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                     # don't do swap, pick new edge again ...
                     continue
                 else:
-                    self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
+                    try:
+                        self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
+                    except:
+                        ipdb.set_trace()
+                        self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
                 multiple_edges.pop(edge_index)
             self.logger.info('{} edges left'.format(len(multiple_edges)))
 
@@ -426,6 +432,8 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         self._generate_normality()
         self.logger.info('checking for multiple links')
         multiple_edges = self._check_multiple_edges()
+        #for ((norm1, norm2), (anind, (an1, an2))) in multiple_edges:
+        #    print(self.G_anomalies[anind].graph.hasEdge(an1, an2))
         if len(multiple_edges) > 0:
             self.swap_multiedges(multiple_edges)
 
