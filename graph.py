@@ -27,16 +27,111 @@ class AbstractGraphGenerator():
         self.n = None
         self.m = None
         self.seq = None
+        self.N_swap = None
 
     def is_realisable():
         raise NotImplementedError
 
-    #@parameter
+    @property
     def degree_list(self):
+        """ Return list of node degrees, unordered"""
         degree_list = []
         for u in self.graph.iterNodes():
             degree_list.append((u,self.graph.degree(u)))
         return degree_list
+
+    # trying to optimize
+    ## IDEE DE ML: graph NK (probablement - a verif) stocké comme 
+    #      
+    #         n1 -> (ni, ... nj)
+    #         n2 -> (ni',... nj') (voisins)
+    #           .
+    #           .
+    #           .
+    #
+    # pas super optimisé pour faire les swaps, donc changer pour avoir plutôt :
+    #   [[n1, ni] ... [n1, nj], [n2, ni'] ... [n2, nj'] ...]
+    # 
+    # puis shuffle, faire des swap 2 à 2 avec voisin puis reshuffle au besoin et refaire swap, 
+    # puis repasser a première visu
+
+    def _edge_swap(self):
+        """ Swap N_swap edges , picked uniformly over the set all all edges"""
+        ## TODO could also defin default number ... ? 
+        assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
+        self.logger.info('swapping {} edges in graph'.format(self.N_swap))
+
+        #  track number of swaps done for debug print
+        n = 0
+        t1 = time.time()
+        # trying to beat DEBUG:root:took 159.76628422737122s to do 10000 swaps
+        edge_pool = nk.graphtools.randomEdges(self.graph, self.N_swap)
+        t6 = time.time() 
+        self.logger.info('took {} to pick {} random edges'.format(t6 -t1, self.N_swap))
+        pool_index = 0
+        while (n < self.N_swap):
+            
+            # print every 10^7 swaps
+            if n%10000000 == 0 and n>0:
+                self.logger.debug('{} switches dones'.format(n))
+            (e1_n1, e1_n2), (e2_n1, e2_n2) = edge_pool[pool_index], edge_pool[pool_index + 1]
+            pool_index += 2
+
+            # get new pool if first one is finished
+            if pool_index >= len(edge_pool):
+                edge_pool = nk.graphtools.randomEdges(self.graph, self.N_swap)
+                pool_index = 0
+
+            #((e1_n1, e1_n2), (e2_n1, e2_n2)) = gt.randomEdges(self.graph, 2)
+
+
+            # check if didn't pick two times the same edge 
+            # or if switched edge already exists
+            if ((e1_n1 == e2_n1) or (e1_n1 == e2_n2) 
+                or (e1_n2 == e2_n1) or (e1_n2 == e2_n2)
+                or self.graph.hasEdge(e1_n1, e2_n2) 
+                or self.graph.hasEdge(e2_n1, e1_n2)
+                or not self.graph.hasEdge(e1_n1, e1_n2)
+                or not self.graph.hasEdge(e2_n1, e2_n2)):
+                continue
+            else:
+                self.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
+                n += 1
+        t2 = time.time()
+        self.logger.debug(
+                'took {}s to do {} switches'.format(t2-t1, self.N_swap))
+
+    #def _edge_swap(self):
+    #    """ Swap N_swap edges , picked uniformly over the set all all edges"""
+    #    ## TODO could also defin default number ... ? 
+    #    assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
+    #    self.logger.info('swapping {} edges in graph'.format(self.N_swap))
+
+    #    #  track number of swaps done for debug print
+    #    n = 0
+    #    t1 = time.time()
+    #    while (n < self.N_swap):
+    #        
+    #        # print every 10^7 swaps
+    #        #if n%10000000 == 0 and n>0:
+    #        if n%1000 == 0:
+    #            self.logger.debug('{} switches dones'.format(n))
+    #        ((e1_n1, e1_n2), (e2_n1, e2_n2)) = nk.graphtools.randomEdges(self.graph, 2)
+
+
+    #        # check if didn't pick two times the same edge 
+    #        # or if switched edge already exists
+    #        if ((e1_n1 == e2_n1) or (e1_n1 == e2_n2) 
+    #            or (e1_n2 == e2_n1) or (e1_n2 == e2_n2)
+    #            or self.graph.hasEdge(e1_n1, e2_n2) 
+    #            or self.graph.hasEdge(e2_n1, e1_n2)):
+    #            continue
+    #        else:
+    #            self.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
+    #            n += 1
+    #    t2 = time.time()
+    #    self.logger.debug(
+    #            'took {}s to do {} swaps'.format(t2-t1, self.N_swap))
 
     def write_graph(self, weights = None):
         if weights is not None:
@@ -48,9 +143,6 @@ class AbstractGraphGenerator():
                 fout.write(f'{u},{v} {weight}\n')
             else:
                 fout.write(f'{v},{u} {weight}\n')
-
-    def generate_weight(self):
-        raise NotImplementedError
 
     def run(self):
         raise NotImplementedError
@@ -85,41 +177,12 @@ class HavelHakimi(AbstractGraphGenerator):
             If true, generate the graph even if the degree sequence is not realizable. Some nodes may get lower degrees than requested in the sequence.
     """
 
-    def __init__(self, sequence , N_switch, logger):
+    def __init__(self, sequence , N_swap, logger):
         self.logger = logger
         self.sequence = sequence
         self.generator = HavelHakimiGenerator(self.sequence)
-        self.N_switch = N_switch
+        self.N_swap = N_swap
         self.graph = None
-        #self.anomaly_sequence = kwargs['anomaly']['sequence'] # should be the same length as self.sequence, with 0s
-
-    def _edge_swap(self):
-        """ shuffle to make 'random' graph'"""
-        self.logger.info('switching {} edges in Havel Hakimi graph'.format(self.N_switch))
-        # regarder genbip swaps pour configuration model
-        #raise NotImplementedError
-        n = 0
-        t1 = time.time()
-        n_attempt = 0
-        while (n < self.N_switch):
-            
-            if n%10000000 == 0 and n>0:
-                self.logger.debug('{} switches dones'.format(n))
-            #((e1_n1, e1_n2), (e2_n1, e2_n2)) = gt.randomEdges(self.graph, 2)
-            (e1_n1, e1_n2) = nk.graphtools.randomEdge(self.graph, uniformDistribution=True)
-            (e2_n1, e2_n2) = nk.graphtools.randomEdge(self.graph, uniformDistribution=True)
-
-
-            # check if didn't pick two times the same edge 
-            # or if switched edge already exists
-            if ((e1_n1 == e2_n1)              or (e1_n1 == e2_n2)               or (e1_n2 == e2_n1)               or (e1_n2 == e2_n2)                or self.graph.hasEdge(e1_n1, e2_n2)               or self.graph.hasEdge(e2_n1, e1_n2)):
-                continue
-            else:
-                self.graph.swapEdge(e1_n1, e1_n2, e2_n1, e2_n2)
-                n += 1
-        t2 = time.time()
-        self.logger.info('took {}s to do {} switches'.format(t2-t1, self.N_switch))
-        #print('edge pick took {}, swap took {}, total took {}, n is {}'.format(t2-t1, t3 -t2, t3-t1, n))
 
     def run(self):
         self.graph = self.generator.generate()
@@ -137,14 +200,15 @@ class ErdosRenyi(AbstractGraphGenerator):
            selfLoops : bool
                Allows self-loops to be generated (only for directed graphs)
     """   
-    def __init__(self, **kwargs):
+    def __init__(self, n, p, N_swap):
         self.n = kwargs['n']
         self.p = kwargs['p']
-        self.generator = ErdosRenyiGenerator(self.n, self.p, directed = False, selfLoops=False)
+        self.generator = ErdosRenyiGenerator(self.n, self.p,
+                                directed = False, selfLoops=False)
+        self.N_swap = N_swap
         self.graph = None
 
     def run(self):
-        #assert
         self.graph = self.generator.generate()
 
 class GNM(AbstractGraphGenerator):
@@ -162,7 +226,7 @@ class GNM(AbstractGraphGenerator):
     """
     def __init__(self, n, m, seed=None):
         self.n = n
-        self.m = m #n * (n-1) / 2
+        self.m = m 
         #self.seed = seed if not None else None ## TODO
 
     @staticmethod ## 
@@ -180,19 +244,21 @@ class GNM(AbstractGraphGenerator):
 
     def run(self):
         """ can add nodes to existing GNM, and create GNM of these nodes """ 
-        self.graph = nk.graph.Graph() # .Graph()?   
-        self.graph.addNodes(self.n) 
+        self.graph = nk.graph.Graph()
+        self.graph.addNodes(self.n)
 
+        # if n = 1, return 1 node graph,
+        # if m = n(n-1)/2, return clique
         if self.n == 1:
             return self.graph
         max_edges = self.n * (self.n - 1) / 2.0
         if self.m >= max_edges:
             return GNM._clique(self.graph)
 
+        # pick two nodes at random, create edge if it doesn't already exist
         nlist = range(self.n)
         edge_count = 0
         while edge_count <= self.m:
-            # generate random edge,u,v
             u = np.random.choice(nlist)
             v = np.random.choice(nlist)
             if u == v or self.graph.hasEdge(u, v):
@@ -229,14 +295,14 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
             numberOfAnomaly,
             n_anomaly,
             m_anomaly, 
-            N_switch,
+            N_swap,
             logger):
 
         self.logger = logger
 
         # global = normal graph + anomaly graph
         #self.dataset = kwargs['dataset']
-        self.degree_list = np.array(degree_list)
+        self.global_degree_list = np.array(degree_list)
 
         # anomaly parameters to generate Erdos Renyi
         self.numberOfAnomaly = numberOfAnomaly # number of anomalies
@@ -247,86 +313,100 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
 
         # normal graph
         self.G_normal = None
-        self.N_switch = N_switch #18215698 #* 10 # N_switch
-        self.break_when_multiple = False # can break when 1 multiple edge detected => can start generation from scratch
+        self.N_swap = N_swap #18215698 #* 10 # N_swap
+
+        # can break when 1 multiedge detected can start generation from scratch
+        self.break_when_multiple = False 
 
         # mapping from current global graph to networkx (anomaly) indices
-        self.node2nx = dict()
-        self.nx2node = dict()
+        self.norm2an = dict()
+        self.an2norm = dict()
 
     def _generate_anomaly(self):
-        """ Generate anomly as Erdos Renyi, using Networkx GNM model """
-        ## TODO allow other models .. ?
-        # draft : G_anomalies is a list of GNMs
-        # to get normality degree, iterate over list than degree list
-        # nk2node et node2nk : keep track of index in list + index of node
-        # 
-        # #TODO for i in range(self.numberOfAnomaly):
+        """ Generate numberOfAnomaly anomalies
+            Each anomaly is generated independently as disjoint graphs,
+            with the same parameters TODO : allow different parameters for each anomaly
+            stored as a list of graphs.
+        """
         # instantiate and generate all anomalies
         for an_i in range(self.numberOfAnomaly):
             self.G_anomalies.append(GNM(self.n_anomaly, self.m_anomaly))
             self.G_anomalies[an_i].run()
 
     def _get_normality_degree_seq(self):
-        """ Get degree sequence for 'normal' graph, by placing anomaly in 
+        """ Get degree sequence for 'normal' graph, by pluging anomaly node in 
             global graph degree sequence, and substracting the anomaly 
-            degrees
+            degrees to get normal degree.
+            global degree sequence = (gd1, gd2, ... gdn)
+            normal degree sequence = (nd1, nd2, ... ndn)
+            anomalies degree sequences = (ad1, ad2, ... adn)
+            where
+            ```
+                gdi = ndi + adi
+            ```
+            In practice : # TODO pseudo code with nice math display 
+            -For i in (1, n), get list of indices (k1, ... kj) such that
+            ```
+                for m in (1...j)  gd_km >= ad_km & gd_km not already selected
+            ```
+            -Pick n in (1...j) uniformly at random, attribute node _km of anomaly to
+             node _km of global graph, and mark node _km of global graph as already selected.
+            -When picking a node that has already been selected, start from scratch.
         """
-        #self.anomaly_seq = self.G.seq # todo later after selecting 
-        #ipdb.set_trace()
         has_duplicate_node = True
         node_selection = []
 
-        # place anomaly in global graph by choosing randomly
-        # the nodes that have a degree high enough.
-        # pick again if two anomaly nodes get mapped to the same node in 
-        # global graph.
-        an_degree_list = [] ## TODO Confusion degree_list et self.degree_list ... 
-        an_degree_pos = [] # index of first node of each graph 
-        for an_i in range(self.numberOfAnomaly): ## TODO do sequentially or "all at once" : if one anomaly placed, don't try again from scratch ? 
+        # get anomalies degree list
+        an_degree_list = []
+        an_degree_pos = [] # index of first node of each graph in degree list
+        for an_i in range(self.numberOfAnomaly):
             an_degree_pos.append(len(an_degree_list))
-            an_degree_list += self.G_anomalies[an_i].degree_list() # TODO concat degree lists
-        # TODO for n_anomaly
+            an_degree_list += self.G_anomalies[an_i].degree_list
+        else:
+            # convert to np.array to get nice numpy index seach
+            an_degree_list = np.array(an_degree_list) 
 
         # plug all anomalies nodes to normal graph degree series
-        # start from scratch if two anomaly nodes end up on the same normal graph node
+        # start from scratch if two anomaly nodes end up on the same normal
+        # graph node
         while (has_duplicate_node):
-            for (index, (node, degree)) in enumerate(an_degree_list): # TODO remonter degree a attribut de GNM
-                # get nodes with degree high enough to place current anomaly
-                # node 
-                anomaly_index = np.where(np.array(an_degree_pos) <= index)[0][-1] # TODO encore un peu cradot
-                # get all available nodes with high enough degree in normal graph
-                # pick one at random
-                candidate_indices = np.where(self.degree_list[:,1] > degree)
+            for (index, (an_node, degree)) in enumerate(an_degree_list):
 
-                node_candidate = np.random.choice(candidate_indices[0])
+                # get nodes with degree high enough to place anomaly node
+                an = np.where(
+                        np.array(an_degree_pos) <= index)[0][-1]
+
+                # pick one at random
+                candidate_indices = np.where(self.global_degree_list[:,1] > degree)
+                candidate_node = np.random.choice(candidate_indices[0])
 
                 # if node has already been chosen, pick all nodes again
-                if (node_candidate, self.degree_list[node_candidate, 0]) in node_selection:
+                if (candidate_node, self.global_degree_list[candidate_node, 0]) in node_selection:
                     node_selection = []
                     has_duplicate_node = True
                     break
-
-                node_selection.append((node_candidate, self.degree_list[node_candidate,0]))
-
+                node_selection.append((candidate_node, self.global_degree_list[candidate_node,0]))
             else:
-                
+
                 # when nodes are picked, substract anomaly degrees 
                 has_duplicate_node = False
-                #for ((nx_node, an_degree), (nG_idx, node)) in zip(self.G_anomaly.graph.degree, node_selection):
-                for (index, ((nx_node, an_degree), (node_idx, node))) in enumerate(zip(an_degree_list, node_selection)):
-                    # get nodes with degree high enough to place current anomaly
-                    # node 
-                    anomaly_index = np.where(np.array(an_degree_pos) <= index)[0][-1] # TODO encore un peu cradot
-                    # set mapping from global to networkx node index
-                    self.node2nx[node] = (anomaly_index, nx_node) # TODO replace nx_node by nk_node
-                    self.nx2node[(anomaly_index, nx_node)] = node
+                for (index, 
+                  ((an_node, an_degree), 
+                  (node_idx, norm_node))) in enumerate(zip(an_degree_list, node_selection)):
+
+                    # get index of graph in list of anomaly graphs
+                    an_index = np.where(np.array(an_degree_pos) <= index)[0][-1] 
+
+                    # set mapping from global to networkit node index
+                    self.norm2an[norm_node] = (an_index, an_node)
+                    self.an2norm[(an_index, an_node)] = norm_node
+
                     # substrace degrees
-                    self.degree_list[node_idx,1] -= an_degree # substract degree from anomaly
+                    self.global_degree_list[node_idx,1] -= an_degree # substract degree from anomaly
 
     def _generate_normality(self):
         """ Generate 'normal' graph using Havel-Hakimi algorithm + edge switching"""
-        self.G_normal = HavelHakimi(self.degree_list[:,1], self.N_switch, self.logger)
+        self.G_normal = HavelHakimi(self.global_degree_list[:,1], self.N_swap, self.logger)
         self.G_normal.run()
         self.G_normal._edge_swap() ## TODO migrate edge switch in "run" when edge switch flag
 
@@ -334,37 +414,39 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
         """ check if Global graph has multiple edges """
 
         # keep track of multiple edges in case we can to switch them later
-        has_multiple_edge = False
         multiple_edges = []
-        for (node1, node2) in self.G_normal.graph.iterEdges():
+        for (norm_n1, norm_n2) in self.G_normal.graph.iterEdges():
 
             # if any of those nodes are not in G_anomaly,
             # current edge is not a multiple edge.
-            if (node1 in self.node2nx and node2 in self.node2nx): 
-                # TODO here get (graph_index, nx_node) 
-                # TODO check that both nodes are in same graph
-                an_index1, nx_node1 = self.node2nx[node1]
-                an_index2, nx_node2 = self.node2nx[node2]
+            if (norm_n1 in self.norm2an and norm_n2 in self.norm2an): 
+
+                # get anomaly nodes names and check if they are in same graph
+                an_index1, an_n1 = self.norm2an[norm_n1]
+                an_index2, an_n2 = self.norm2an[norm_n2]
 
                 # check if current edge already exists in anomaly
-                # TODO get graph then check condition on graph
-                if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge(nx_node1, nx_node2)): 
-                    has_multiple_edge = True
-                    multiple_edges.append(((node1, node2), (an_index1, (nx_node1, nx_node2)))) # TODO cradot
+                if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge(an_n1, an_n2)): 
+                    multiple_edges.append(((norm_n1, norm_n2), (an_index1, (an_n1, an_n2))))
                     if self.break_when_multiple:
-                        self.logger.info('detected multiple edge')
+                        self.logger.warning('Multiedge in normal+anomaly graph,'
+                          'and break_when_multiple set to true, stopping generation.')
                         break
+
         if len(multiple_edges) > 0:
-            self.logger.info('detected multiple edge')
+            self.logger.info(
+              '{} Multiedge in normal+anomaly graph detected.'.format(len(multiple_edges)))
         return multiple_edges
     
     @staticmethod
-    def _swap_edge(node1, G):
-        (e1_n1, e1_n2) = node1
-        #(e1_n1, e1_n2) = gt.randomEdge(self.graph)
+    def _swap_edge(edge1, G):
+        ''' Given graph and 1 edge pick another edge uniformly at random and
+            swap edges
+        '''
+        (e1_n1, e1_n2) = edge1
 
         # check if didn't pick two times the same edge 
-        # or if switched edge already exists
+        # or if swaped edges already exist
         acceptable_swap = False
         while acceptable_swap == False:
             (e2_n1, e2_n2) = nk.graphtools.randomEdge(G, uniformDistribution=True)
@@ -373,53 +455,51 @@ class FromDataWithAnomaly(AbstractGraphGenerator):
                 acceptable_swap = False
             else:
                 acceptable_swap = True
-
-        return (e2_n1, e2_n2) 
+                return (e2_n1, e2_n2)
     
     def swap_multiedges(self, multiple_edges):
         """ If multiple edges are detected between normal graph and anomaly, 
             target them specifically when switching
         """
-        self.logger.info('swapping multiple edges')
-        self.logger.info('{} edges left'.format(len(multiple_edges)))
+        self.logger.info('Swapping edges, targetting multiedges specifically')
+        self.logger.debug('Swapping {} edges'.format(len(multiple_edges)))
         while (len(multiple_edges) > 0):
-            #((node1, node2, an_node1, an_node2)) = np.random.choice(multiple_edge_list)
-            # pick an edge at random
+
+            # pick an edge at random ## TODO not necessary ? 
             edge_index = np.random.randint(low=0, high=len(multiple_edges))
-            ((norm_n1, norm_n2), (an_index, (an_n1, an_n2))) = multiple_edges[edge_index] 
-            p = random.uniform(0, 1)
+            ((norm_n1, norm_n2), (an_index, (an_n1, an_n2))) = multiple_edges[edge_index]
+            (norm_edge1, (an_index, an_edge1)) = multiple_edges[edge_index]
 
             # choose at random which of the normal graph or anomaly to update
-            if p>=0.5: 
-                #(e1_n1, e1_n2) = (norm_n1, norm_n2)
-                (e2_n1, e2_n2) = self._swap_edge((norm_n1, norm_n2), self.G_normal.graph)
+            p = random.uniform(0, 1)
+            if p>=0.5: # TODO remonter proba comme paramètre 
+                norm_edge2 = self._swap_edge(norm_edge1, self.G_normal.graph)
 
                 # check if swap is not multiple link with anomaly
                 # TODO should remove check for norm_n1, assum exist since multiple edge :)
-                if ((norm_n1 in self.node2nx and e2_n2 in self.node2nx and norm_n2 in self.node2nx and e2_n1 in self.node2nx) 
-                    and (self.G_anomalies[an_index].graph.hasEdge(self.node2nx[norm_n1][1], self.node2nx[e2_n2][1])
-                        or self.G_anomalies[an_index].graph.hasEdge(self.node2nx[e2_n1][1], self.node2nx[norm_n2][1]))):
+                if ((norm_edge1[0] in self.norm2an and norm_edge2[1] in self.norm2an and norm_edge1[1] in self.norm2an and norm_edge2[0] in self.norm2an) 
+                    and (self.G_anomalies[an_index].graph.hasEdge(self.norm2an[norm_edge1[0]][1], self.norm2an[norm_edge2[1]][1])
+                        or self.G_anomalies[an_index].graph.hasEdge(self.norm2an[norm_edge2[0]][1], self.norm2an[norm_edge1[1]][1]))):
                         # don't do swap, pick new edge again ...
                         continue 
                 else:
-                    self.G_normal.graph.swapEdge(norm_n1, norm_n2, e2_n1, e2_n2)
+                    self.G_normal.graph.swapEdge(norm_edge1[0], norm_edge1[1], norm_edge2[0], norm_edge2[1])
                     multiple_edges.pop(edge_index)
 
             else:
-                #(e1_n1, e1_n2) = (an_n1, an_n2) # un peu cradot
-                (e2_n1, e2_n2) = self._swap_edge((an_n1, an_n2), self.G_anomalies[an_index].graph) ## TODO clean coherence arguments
+                an_edge2 = self._swap_edge(an_edge1, self.G_anomalies[an_index].graph) ## TODO clean coherence arguments
 
                 # check if swap is not multiple link with normal graph 
-                if (self.G_normal.graph.hasEdge(self.nx2node[(an_index, an_n1)], self.nx2node[(an_index, e2_n2)]) 
-                       or self.G_normal.graph.hasEdge(self.nx2node[(an_index, e2_n1)], self.nx2node[(an_index, an_n2)])):
+                if (self.G_normal.graph.hasEdge(self.an2norm[(an_index, an_edge1[0])], self.an2norm[(an_index, an_edge2[1])]) 
+                       or self.G_normal.graph.hasEdge(self.an2norm[(an_index, an_edge2[0])], self.an2norm[(an_index, an_edge1[1])])):
                     # don't do swap, pick new edge again ...
                     continue
                 else:
-                    try:
-                        self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
-                    except:
-                        ipdb.set_trace()
-                        self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
+                    #try:
+                    self.G_anomalies[an_index].graph.swapEdge(an_edge1[0], an_edge1[1], an_edge2[0], an_edge2[1])
+                    #except:
+                    #    ipdb.set_trace()
+                    #    self.G_anomalies[an_index].graph.swapEdge(an_n1, an_n2, e2_n1, e2_n2)
                 multiple_edges.pop(edge_index)
             self.logger.info('{} edges left'.format(len(multiple_edges)))
 
