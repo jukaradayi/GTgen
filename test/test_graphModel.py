@@ -40,7 +40,7 @@ def test_GNM(logger):
     assert G.graph.numberOfEdges == 45
     assert G.graph.numberOfNodes == 10
     for (u,v) in combinations(G.graph.nodes, 2):
-        edge = (u,v) if u>v else (v,u)
+        edge = (u,v) if u<v else (v,u)
         assert G.graph.hasEdge(edge), "clique does not contain edge ({}, {})".format(u, v)
 
     G = GNM(10, 20, logger)
