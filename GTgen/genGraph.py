@@ -154,7 +154,7 @@ class GraphWithAnomaly():
         #self.logger.info('{}s for nk hakimi'.format(t1 - t0))
         self.G_normal.run()
         t1 = time.time()
-        self.logger.info('{}s for python hakimi'.format(t2 - t1))
+        self.logger.info('{}s for python hakimi'.format(t1 - t0))
         self.G_normal._edge_swap() ## TODO migrate edge switch in "run" when edge switch flag
 
     def _check_multiple_edges(self):
@@ -164,7 +164,8 @@ class GraphWithAnomaly():
         multiple_edges = []
         #for (norm_n1, norm_n2) in self.G_normal.graph.iterEdges():
         #ipdb.set_trace()
-        for (norm_n1, norm_n2) in self.G_normal.graph.edges:
+        for  norm_edge in self.G_normal.graph.edges:
+            (norm_n1, norm_n2) = norm_edge
 
             # if any of those nodes are not in G_anomaly,
             # current edge is not a multiple edge.
@@ -174,9 +175,11 @@ class GraphWithAnomaly():
                 an_index1, an_n1 = self.norm2an[norm_n1]
                 an_index2, an_n2 = self.norm2an[norm_n2]
 
+                an_edge = (an_n1, an_n2) if an_n1 < an_n2 else (an_n2, an_n1)
+
                 # check if current edge already exists in anomaly
-                if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge((an_n1, an_n2))): 
-                    multiple_edges.append(((norm_n1, norm_n2), (an_index1, (an_n1, an_n2))))
+                if ((an_index1 == an_index2) and self.G_anomalies[an_index1].graph.hasEdge(an_edge)): 
+                    multiple_edges.append((norm_edge, (an_index1, an_edge)))
                     if self.break_when_multiple:
                         self.logger.warning('Multiedge in normal+anomaly graph,'
                           'and break_when_multiple set to true, stopping generation.')
@@ -282,6 +285,8 @@ class GraphWithAnomaly():
                         continue
 
                     multiple_edges = self._check_multiple_edges()
+                #if len(multiple_edges) % 10 == 0:
+                self.logger.debug('{} multiple edges left'.format(len(multiple_edges)))
             self.logger.info('{} edges left'.format(len(multiple_edges)))
 
     def run(self):
@@ -293,7 +298,8 @@ class GraphWithAnomaly():
         self._generate_normality()
         self.logger.info('checking for multiple links')
         multiple_edges = self._check_multiple_edges()
-        if len(multiple_edges) > 0:
-            self.swap_multiedges(multiple_edges)
+        self.logger.info('{} multiple edges'.format(len(multiple_edges)))
+        #if len(multiple_edges) > 0:
+        #    self.swap_multiedges(multiple_edges)
 
 

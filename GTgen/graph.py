@@ -55,6 +55,9 @@ class Graph():
     #    self._edge_set = edge_set
 
     def hasEdge(self, _edge):
+        return _edge in self.edge_set
+
+    def hasEdge_slow(self, _edge):
         """ Check if the graph has requested edge (u,v). 
             Reorder edge if v>u.
         """
@@ -96,30 +99,40 @@ class Graph():
                 if edges are ints, simply swap them (faster)
 
         """
-        assert type(edge1_idx) == int, 'expecting integer for swapEdgeIdx'
-        assert type(edge2_idx) == int, 'expecting integer for swapEdgeIdx'
-        assert edge1_idx < len(self.edges), "edge index for swap is out of bound"
-        assert edge2_idx < len(self.edges), "edge index for swap is out of bound"
-        assert edge1_idx != edge2_idx, "swapping edge with itself"
+        #assert type(edge1_idx) == int, 'expecting integer for swapEdgeIdx'
+        #assert type(edge2_idx) == int, 'expecting integer for swapEdgeIdx'
+        #assert edge1_idx < len(self.edges), "edge index for swap is out of bound"
+        #assert edge2_idx < len(self.edges), "edge index for swap is out of bound"
+        #assert edge1_idx != edge2_idx, "swapping edge with itself"
 
         (e1_n1, e1_n2)  = self.edges[edge1_idx]
 
         # 1/2 chance of reversing _edge2 : equivalent to picking both
         # directions at random
+        edge2 = self.edges[edge2_idx]
+
+        if e1_n1 in edge2 or e1_n2 in edge2:
+            return False
+
         if reverse:
-            (e2_n2, e2_n1) = self.edges[edge2_idx]
+            (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
         else:
-            (e2_n1, e2_n2) = self.edges[edge2_idx]
+            (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
+
+        #if e1_n1 in (e2_n2, e2_n1:
+        #    return False
 
         # get new edges
         new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
         new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
         
         # check if swap is possible
-        assert self.hasEdge((e1_n1, e1_n2)), "attempting to swap an edge that is not in graph"
-        assert self.hasEdge((e2_n1, e2_n2)), "attempting to swap an edge that is not in graph"
-        assert not self.hasEdge(new_edge1), "swapped edge already exist in graph"
-        assert not self.hasEdge(new_edge2), "swapped edge already exist in graph"
+        #assert self.hasEdge((e1_n1, e1_n2)), "attempting to swap an edge that is not in graph"
+        #assert self.hasEdge((e2_n1, e2_n2)), "attempting to swap an edge that is not in graph"
+        #assert not self.hasEdge(new_edge1), "swapped edge already exist in graph"
+        #assert not self.hasEdge(new_edge2), "swapped edge already exist in graph"
+        if new_edge1 in self.edge_set or new_edge2 in self.edge_set:
+            return False
 
         # replace edges
         self._replaceEdges(edge1_idx, edge2_idx, new_edge1, new_edge2)
@@ -132,6 +145,7 @@ class Graph():
 
         #self.edges[edge1_idx] = new_edge1
         #self.edges[edge2_idx] = new_edge2
+        return True
 
     #def swapEdge(self, edge1, edge2):
     #    """
@@ -195,8 +209,8 @@ class Graph():
     def addEdge(self, edge):
         """ add an edge in the graph"""
         (n1, n2) = edge
-        assert n1 != n2, "can't add self loop"
-        assert not self.hasEdge(edge), "can't add multi edge"
+        #assert n1 != n2, "can't add self loop"
+        #assert not self.hasEdge(edge), "can't add multi edge"
 
         # keep nodes sorted
         if n1 < n2:
@@ -218,6 +232,3 @@ class Graph():
     def shuffle_edges(self):
         """ shuffle all edges"""
         np.random.shuffle(self.edges)
-
-
-

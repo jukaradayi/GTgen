@@ -37,34 +37,154 @@ class AbstractGraphGenerator():
 
     def _edge_swap(self): 
         """ Do N_swap edge swap to get more random graph"""
+        import cProfile
+
+        pr = cProfile.Profile()
+        pr.enable()
+
         assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
         # first shuffle edges, than swap two by two
         n_swap = 0
         self.logger.info('{} swaps needed'.format(self.N_swap))
+        t0 = time.time()
+        reverse_array = np.random.uniform(0,1,self.N_swap*10)
+        #self.graph.shuffle_edges()
+        rdm_index1 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
+        rdm_index2 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
+
         while n_swap < self.N_swap:
-            self.graph.shuffle_edges()
-            for edge1_idx, edge1 in enumerate(self.graph.edges[::2]):
-                edge2_idx = edge1_idx + 1
-                # reverse second edge with proba 1/2
-                reverse = random.uniform(0,1) >= 0.5 
-
-                if n_swap % 10**7 == 0:
-
-                    #self.logger.info('{} swapps done'.format(n_swap))
-                    self.logger.info('{} for 10 000 000 swaps'.format(time.time() - tt0))
-                    tt0 = time.time()
-                try:
-                    tt0 = time.time()
-                    self.graph.swapEdge(edge1_idx, edge2_idx, reverse)
-                    #print('{} for a swap, nswap {}'.format(time.time() - tt0, n_swap))
-                    n_swap += 1
-                except AssertionError as ae:
-                    #print('skipping')
+            #for edge1_idx, edge1 in enumerate(self.graph.edges[::2]):
+            for edge1_idx, edge2_idx, reverse in zip(rdm_index1, rdm_index2, reverse_array):
+                #edge2_idx = edge1_idx + 1
+                if edge1_idx == edge2_idx:
                     continue
+
+                if n_swap % 10**4 == 0:
+
+                    self.logger.debug('{} for {} swaps'.format(time.time() - t0, n_swap))
+
+                (e1_n1, e1_n2)  = self.graph.edges[edge1_idx]
+
+                # 1/2 chance of reversing _edge2 : equivalent to picking both
+                # directions at random
+                edge2 = self.graph.edges[edge2_idx]
+
+                #if e1_n1 in edge2 or e1_n2 in edge2:
+                #    accepted = False
+                #else:
+                #    accepted = True
+
+                #if accepted:
+                if reverse_array[n_swap] >= 0.5:
+                    (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
+                else:
+                    (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
+
+                # get new edges
+                new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
+                new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
+                
+                if new_edge1 in self.graph.edge_set or new_edge2 in self.graph.edge_set:
+                    continue
+                else:
+                    self.graph.edge_set.remove(self.graph.edges[edge1_idx])
+                    self.graph.edge_set.remove(self.graph.edges[edge2_idx])
+            
+                    self.graph.edge_set.add(new_edge1)
+                    self.graph.edge_set.add(new_edge2)
+            
+                    self.graph.edges[edge1_idx] = new_edge1
+                    self.graph.edges[edge2_idx] = new_edge2
+
+                    n_swap += 1
                 if n_swap >= self.N_swap :
                     break
-        t1 = time.time()
-        self.logger.info('{} for {} swap'.format(t1-t0, self.N_swap))
+            else:
+                #when run out of indexes pick some again
+                reverse_array = np.random.uniform(0,1,self.N_swap*10)
+                #self.graph.shuffle_edges()
+                rdm_index1 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
+                rdm_index2 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
+
+                #self.graph.shuffle_edges()
+
+        pr.disable()
+        pr.print_stats()
+
+        pr.dump_stats('inside_complete.profile')
+
+        self.logger.debug('{} for {} swap'.format(time.time()-t0, self.N_swap))
+
+
+    def _edge_swap_shuffle(self): 
+        """ Do N_swap edge swap to get more random graph"""
+        import cProfile
+
+        pr = cProfile.Profile()
+        pr.enable()
+
+        assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
+        # first shuffle edges, than swap two by two
+        n_swap = 0
+        self.logger.info('{} swaps needed'.format(self.N_swap))
+        t0 = time.time()
+        reverse_array = np.random.uniform(0,1,self.N_swap*100)
+        self.graph.shuffle_edges()
+
+        while n_swap < self.N_swap:
+            #for edge1_idx, edge1 in enumerate(self.graph.edges[::2]):
+            for edge1_idx, edge1 in enumerate(self.graph.edges[:]):
+                edge2_idx = edge1_idx + 1
+
+                if n_swap % 10**4 == 0:
+
+                    self.logger.debug('{} for {} swaps'.format(time.time() - t0, n_swap))
+
+                (e1_n1, e1_n2)  = self.graph.edges[edge1_idx]
+
+                # 1/2 chance of reversing _edge2 : equivalent to picking both
+                # directions at random
+                edge2 = self.graph.edges[edge2_idx]
+
+                #if e1_n1 in edge2 or e1_n2 in edge2:
+                #    accepted = False
+                #else:
+                #    accepted = True
+
+                #if accepted:
+                if reverse_array[n_swap] >= 0.5:
+                    (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
+                else:
+                    (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
+
+                # get new edges
+                new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
+                new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
+                
+                if new_edge1 in self.graph.edge_set or new_edge2 in self.graph.edge_set:
+                    continue
+                else:
+                    self.graph.edge_set.remove(self.graph.edges[edge1_idx])
+                    self.graph.edge_set.remove(self.graph.edges[edge2_idx])
+            
+                    self.graph.edge_set.add(new_edge1)
+                    self.graph.edge_set.add(new_edge2)
+            
+                    self.graph.edges[edge1_idx] = new_edge1
+                    self.graph.edges[edge2_idx] = new_edge2
+
+                    n_swap += 1
+                if n_swap >= self.N_swap :
+                    break
+            else:
+                self.graph.shuffle_edges()
+
+        pr.disable()
+        pr.print_stats()
+
+        pr.dump_stats('inside_complete.profile')
+
+        self.logger.debug('{} for {} swap'.format(time.time()-t0, self.N_swap))
 
     def write_graph(self, weights = None):
         if weights is not None:
