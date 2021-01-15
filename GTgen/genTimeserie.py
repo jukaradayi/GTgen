@@ -58,3 +58,4 @@ class TimeserieWithAnomaly():
         #    np.min(self.timeserie.serie[:self.anomaly_index]), np.max(self.timeserie.serie[:self.anomaly_index]),
         #    np.min(self.timeserie.serie[:]), np.max(self.timeserie.serie[:])))
         self.timeserie.plot()
+        self.timeserie.write_TS('./matimeserie.txt')

@@ -28,10 +28,48 @@ class Graph():
         else:
             self.edge_set = edge_set
         self.nodes = nodes
+        self.weight = None
         #self.graph = graph
-        self.is_sorted = is_sorted ## TODO might not be needed
+        #self.is_sorted = is_sorted ## TODO might not be needed
         self._degrees = degrees
         self.logger = logger
+
+    def __add__(self, other):
+        """ Merge two graphs.
+            When node names are share, assume same nodes
+            Raise Attribute Error when edges are present in both.
+        """
+        # raise error if multiple edge detected
+        if len(self.edge_set.intersection(other.edge_set)) > 0:
+            raise AttributeError
+        else:
+            total_nodes = self.nodes.union(other.nodes)
+            total_edge_set = self.edge_set.union(other.edge_set)
+            total_edges = self.edges + other.edges
+            #total_degrees = Counter(elem for elem in list(sum(toedges, ())))
+            return Graph(edges = total_edges, nodes=total_nodes, edge_set=total_edge_set, logger = self.logger)
+
+    def shuffle_weights(self):
+        assert self.weight is not None, "Attempting to shuffle weights, but weights not defined."
+        np.random.shuffle(self.weight)
+
+
+    def _write_graphOnly(self):
+        with open() as fout:
+            for edge in self.edges:
+                fout.write('{}-{}'.format(edge[0], edge[1]))
+
+    def _write_weightedGraph(self):
+        assert len(self.edges) == len(self.weight), "Graph has {} weights and {} edges, should have the same number".format(len(self.weight), len(self.edges))
+        with open('mongraph.txt', 'w') as fout:
+            for edge, weight in zip(self.edges, self.weight):
+                fout.write('{}-{} {}\n'.format(edge[0], edge[1], weight))
+
+    def write_graph(self):
+        if self.weight is None:
+            self._write_graphOnly()
+        else:
+            self._write_weightedGraph()
 
     @property
     def degrees(self):

@@ -3,22 +3,30 @@ Graph:
     #out_path: "./model.weight"
     params:
         #model: "ErdosRenyi"
-        model: "GNM"
+        #model: "GNM"
         #model: 'HavelHakimi'
         #model: 'EdgeSwitchingMarkovChain'
-        use_dataset: True
-        #dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.weight.d"
-        dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/taxi_deg_seq.txt"
-        n: 30046 # TODO should be set by using dataset
-        numberOfAnomalies: 3
+        #use_dataset: True
+        #weight: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.weight.d"
+        #weight: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/taxi1000/taxi_stream.txt.weight.d"
+        #degree: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/taxi1000/taxi.degree"
+        #degree: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/toy/toy_deg_seq.txt"
+        #weight: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/toy/toy_weight.txt"
+        degree: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/peru/peru.degree"
+        weight: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/peru/peru.weight.d"
+
+        #n: 30046 # TODO should be set by using dataset
+        numberOfAnomalies: 1
         n_anomaly: 50 # TODO: voir si je trouve des valeurs qui font casser 
-        m_anomaly: 1225
+        m_anomaly: 500
         #N_switch: 182156980 #10000 #300000 #40000000
-        N_switch: 120
+        N_swap: 10
+        #N_switch: 18215698 #1000000 #1820000 #1000000 
+        #N_switch: 1000000
         #p: 20 # for ErdosRenyi
         #m: 149582 not used when dataset fixed
         #seq: [1,1,2,3,1] for HavelHakimi/EdgeSwitchingMarkovChain
-        seq: [1,1,2,3,1] # TODO think of another way to pass degree sequence, might get untractable for long sequences...
+        #seq: [1,1,2,3,1] # TODO think of another way to pass degree sequence, might get untractable for long sequences...
     anomaly:
         params:
             N: 2 # number of anomaly to add
@@ -30,14 +38,16 @@ TimeSerie:
     generate: True
     #out_path: "./model.ts"
     params:
-        model: "TSFromDataset"
+        #model: "TSFromDataset"
         #model: "IidNoise"
-        dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.ts.d" 
+        #dataset: "/home/jkaradayi/projects/benchmark/processor/gen_graph_ts/mawi/mawi_stream.txt.ts.d" 
+        #dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/taxi_stream.txt.ts"
+        dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/peru/peru.ts"
         #duration: 20000 # for Iid Noise
         #bound_up: 5 # upper bound # for Iid Noise
         #bound_down: 0 # lower bound # for Iid Noise
         #has_seasonality: False # TODO implement ? 
-    anomaly:
-        params:
-            type: "outlier" # other things that could be implemented: temporal change, seasonal level shift 
-            N: 2 # number of anomaly to add
+        #anomaly:
+        #anomparams:
+        #anom    type: "outlier" # other things that could be implemented: temporal change, seasonal level shift 
+        #anom    N: 2 # number of anomaly to add
