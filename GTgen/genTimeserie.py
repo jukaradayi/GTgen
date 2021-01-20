@@ -1,13 +1,16 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+
 from GTgen.timeserie import * 
+
 class TimeserieWithAnomaly():
     """
     """
     def __init__(self, value_list,
             anomaly_type,
             anomaly_duration,
+            output,
             logger):
         #self.numberOfAnomaly = numberofAnomaly
 
@@ -20,6 +23,7 @@ class TimeserieWithAnomaly():
         # sort timeserie
         self.timeserie.serie = self.timeserie.sorted_timeserie
         self.logger = logger
+        self.output = output
 
     def _generate_regimeShift(self):
         # anomaly_duration is ratio
@@ -46,6 +50,7 @@ class TimeserieWithAnomaly():
     #    self.timeserie.shuffle_timeserie(index_low = 0, index_high = self.anomaly_index)
     
     def run(self):
+        self.logger.info('generating')
         if self.anomaly_type == "regimeShift":
             # generate anomaly
             self._generate_regimeShift()
@@ -58,4 +63,4 @@ class TimeserieWithAnomaly():
         #    np.min(self.timeserie.serie[:self.anomaly_index]), np.max(self.timeserie.serie[:self.anomaly_index]),
         #    np.min(self.timeserie.serie[:]), np.max(self.timeserie.serie[:])))
         self.timeserie.plot()
-        self.timeserie.write_TS('./matimeserie.txt')
+        self.timeserie.write_TS(self.output)

@@ -1,17 +1,12 @@
 import ipdb
 import time
 import random
-import argparse
 import logging
+import argparse
 import numpy as np
 
 from GTgen.graph import *
-#import networkit as nk
-#import networkit.graphtools as gt
-
 from collections import defaultdict
-#from networkx.generators.random_graphs import gnm_random_graph
-#from networkit.generators import EdgeSwitchingMarkovChainGenerator, HavelHakimiGenerator, ErdosRenyiGenerator
 
 class AbstractGraphGenerator():
     """ Abstract Class for graph Generators
@@ -30,27 +25,28 @@ class AbstractGraphGenerator():
     def __init__(self, N_swap, graph):
         self.graph = graph
         self.N_swap = N_swap
-        print(N_swap)
 
-    def is_realisable():
-        raise NotImplementedError
+    #def is_realisable():
+    #    raise NotImplementedError
 
     def _edge_swap(self): 
         """ Do N_swap edge swap to get more random graph"""
-        import cProfile
 
-        pr = cProfile.Profile()
-        pr.enable()
-        assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
+        assert self.N_swap is not None, ("attempting to swap edges but no swap number defined"
+
         # first shuffle edges, than swap two by two
         n_swap = 0
         self.logger.info('{} swaps needed'.format(self.N_swap))
+
+        # keep track of time
         t0 = time.time()
         #reverse_array = np.random.uniform(0,1,self.N_swap*10)
 
         # pick random edges
         #rdm_index1 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
         #rdm_index2 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
+
+        # Keep track of number of attemps before a successful swap
         n_attempts = []
         _n_attempts = 0
         #N_fail = 0
@@ -82,7 +78,8 @@ class AbstractGraphGenerator():
             new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
 
             # skip when edge exist 
-            if new_edge1 in self.graph.edge_set or new_edge2 in self.graph.edge_set:
+            if (new_edge1 in self.graph.edge_set 
+             or new_edge2 in self.graph.edge_set:
                 _n_attempts += 1
                 continue
             else:
@@ -99,7 +96,8 @@ class AbstractGraphGenerator():
                 self.graph.edges[edge2_idx] = new_edge2
                 n_swap += 1
                 if n_swap % 10**7 == 0:
-                    self.logger.debug('{} for {} swaps, mean n_attempts {}'.format(time.time() - t0, n_swap, np.mean(n_attempts)))
+                    self.logger.debug('{} for {} swaps, mean n_attempts {}'.format(
+                        time.time() - t0, n_swap, np.mean(n_attempts)))
 
             if n_swap >= self.N_swap :
                 break
@@ -111,97 +109,25 @@ class AbstractGraphGenerator():
             #    rdm_index2 = np.random.choice(len(self.graph.edges), size=10*self.N_swap)
 
                 #self.graph.shuffle_edges()
-        pr.disable()
-        pr.print_stats()
 
-        pr.dump_stats('inside_complete.profile')
-
-        self.logger.debug('{} for {} swap, mean n_attempts {}, min n_attempts {}, max n_attempts {}'.format(time.time()-t0, self.N_swap, np.mean(n_attempts), min(n_attempts), max(n_attempts)))
+        self.logger.debug('{} for {} swap, mean n_attempts {},'
+            'min n_attempts {}, max n_attempts {}'.format(
+                time.time()-t0, self.N_swap, np.mean(n_attempts),
+                min(n_attempts), max(n_attempts)))
         #self.logger.debug('FAIL {}'.format(N_fail))
 
-
-    #def _edge_swap_shuffle(self): 
-    #    """ Do N_swap edge swap to get more random graph"""
-    #    import cProfile
-
-    #    pr = cProfile.Profile()
-    #    pr.enable()
-
-    #    assert self.N_swap is not None, "attempting to swap edges but no swap number defined"
-    #    # first shuffle edges, than swap two by two
-    #    n_swap = 0
-    #    self.logger.info('{} swaps needed'.format(self.N_swap))
-    #    t0 = time.time()
-    #    reverse_array = np.random.uniform(0,1,self.N_swap*100)
-    #    self.graph.shuffle_edges()
-
-    #    while n_swap < self.N_swap:
-    #        #for edge1_idx, edge1 in enumerate(self.graph.edges[::2]):
-    #        for edge1_idx, edge1 in enumerate(self.graph.edges[:]):
-    #            edge2_idx = edge1_idx + 1
-
-    #            if n_swap % 10**4 == 0:
-
-    #                self.logger.debug('{} for {} swaps'.format(time.time() - t0, n_swap))
-
-    #            (e1_n1, e1_n2)  = self.graph.edges[edge1_idx]
-
-    #            # 1/2 chance of reversing _edge2 : equivalent to picking both
-    #            # directions at random
-    #            edge2 = self.graph.edges[edge2_idx]
-
-    #            #if e1_n1 in edge2 or e1_n2 in edge2:
-    #            #    accepted = False
-    #            #else:
-    #            #    accepted = True
-
-    #            #if accepted:
-    #            if reverse_array[n_swap] >= 0.5:
-    #                (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
-    #            else:
-    #                (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
-
-    #            # get new edges
-    #            new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
-    #            new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
-    #            
-    #            if new_edge1 in self.graph.edge_set or new_edge2 in self.graph.edge_set:
-    #                continue
-    #            else:
-    #                self.graph.edge_set.remove(self.graph.edges[edge1_idx])
-    #                self.graph.edge_set.remove(self.graph.edges[edge2_idx])
-    #        
-    #                self.graph.edge_set.add(new_edge1)
-    #                self.graph.edge_set.add(new_edge2)
-    #        
-    #                self.graph.edges[edge1_idx] = new_edge1
-    #                self.graph.edges[edge2_idx] = new_edge2
-
-    #                n_swap += 1
-    #            if n_swap >= self.N_swap :
-    #                break
+    #def write_graph(self, weights = None):
+    #    if weights is not None:
+    #        #iterator = zip(self.graph.iterEdges(), weights)
+    #        iterator = zip(self.graph.edges(), weights)
+    #    else:
+    #        #iterator = self.graph.iterEdges() # TODO add zip (ones) pour ajouter des poids fictifs ? 
+    #        iterator = self.graph.edges() # TODO add zip (ones) pour ajouter des poids fictifs ? 
+    #    for ((u, v), weight) in iterator:
+    #        if u<v :
+    #            fout.write(f'{u},{v} {weight}\n')
     #        else:
-    #            self.graph.shuffle_edges()
-
-    #    pr.disable()
-    #    pr.print_stats()
-
-    #    pr.dump_stats('inside_complete.profile')
-
-    #    self.logger.debug('{} for {} swap'.format(time.time()-t0, self.N_swap))
-
-    def write_graph(self, weights = None):
-        if weights is not None:
-            #iterator = zip(self.graph.iterEdges(), weights)
-            iterator = zip(self.graph.edges(), weights)
-        else:
-            #iterator = self.graph.iterEdges() # TODO add zip (ones) pour ajouter des poids fictifs ? 
-            iterator = self.graph.edges() # TODO add zip (ones) pour ajouter des poids fictifs ? 
-        for ((u, v), weight) in iterator:
-            if u<v :
-                fout.write(f'{u},{v} {weight}\n')
-            else:
-                fout.write(f'{v},{u} {weight}\n')
+    #            fout.write(f'{v},{u} {weight}\n')
 
     def run(self):
         raise NotImplementedError
@@ -210,13 +136,15 @@ class HavelHakimi(AbstractGraphGenerator):
     """
         Parameters:
         -----------
-        sequence : vector
+        sequence : np.array
             Degree sequence and node names to realize. Must be non-increasing.
-        ignoreIfRealizable : bool, optional
-            If true, generate the graph even if the degree sequence is not realizable. Some nodes may get lower degrees than requested in the sequence.
+        N_swap: int
+            After generation, N_swap * N_edges edge swap will be performed.
+        seed: int
+            The random seed to be used in numpy
     """
 
-    def __init__(self, sequence , N_swap, logger):
+    def __init__(self, sequence , N_swap, logger, seed=None):
         self.graph = Graph(edges=[],
                 #nodes=set(range(len(self.sequence))),
                 nodes=set(sequence[:,0]),
@@ -225,6 +153,9 @@ class HavelHakimi(AbstractGraphGenerator):
 
         super().__init__(N_swap=N_swap, graph=self.graph)
         self.logger = logger
+        if seed is not None:
+            np.random.seed(seed)
+
         if len(sequence.shape) > 1 and sequence.shape[1] > 1:
             self.sequence = sequence
         else:
@@ -234,20 +165,18 @@ class HavelHakimi(AbstractGraphGenerator):
             self.sequence[:,0] = np.arange(sequence.shape[0])
 
         self.sequence = sequence
-        #self.generator = HavelHakimiGenerator(self.sequence)
-        #self.N_swap = N_swap
         self.N_swap = N_swap
-        print('in havel hakimi {}'.format(self.N_swap))
+
         self.graph = Graph(edges=[],
                 #nodes=set(range(len(self.sequence))),
                 nodes=set(self.sequence[:,0]),
-                #is_sorted=False,
                 degrees=self.sequence, logger=self.logger)
 
     def run(self):
         # Using Networkit implementation
-        numDegVals = np.max(self.sequence[:,1]) + 1 ## quid du +1 .. ? 
+        numDegVals = np.max(self.sequence[:,1]) + 1
         nodesByDeficit = defaultdict(list)
+
         #for node, degree in enumerate(self.sequence):
         for node, degree in self.sequence:
             nodesByDeficit[degree].insert(0, (degree, node))
@@ -257,8 +186,6 @@ class HavelHakimi(AbstractGraphGenerator):
             # process node in largest bucket
             while len(nodesByDeficit[maxDeficit]) > 0:
                 # get element
-                #print(nodesByDeficit)
-                #print(nodesByDeficit[maxDeficit])
                 deficit, currentVertex = nodesByDeficit[maxDeficit].pop(0)
 
                 # connect vertex to following ones
@@ -269,25 +196,18 @@ class HavelHakimi(AbstractGraphGenerator):
                 while(deficit > 0):
                     numDeleteFromCurrentList = 0
                     for _, nextNeighbor in nodesByDeficit[currentNeighborList]:
-                        #edge =  (currentVertex, nextNeighbor) if currentVertex < nextNeighbor else (nextNeighbor, currentVertex)
-                        #print('current vertex {} nextNeighbor {} , deficit {} max deficit {}'.format(currentVertex, nextNeighbor, deficit, maxDeficit))
-                        #print('before add')
-                        #print(self.graph.edges)
                         self.graph.addEdge((currentVertex, nextNeighbor))
-                        #print('after add')
-                        #print(self.graph.edges)
 
                         deficit -= 1
                         numDeleteFromCurrentList += 1
 
                         if deficit == 0:
-                            # dur to -= 1  a few lines below
+                            # due to -= 1  a few lines below
                             currentNeighborList += 1 
                             break
                     numToMove.append(numDeleteFromCurrentList)
 
                     if (currentNeighborList == 1):
-                        #print(self.graph.edges)
                         raise RuntimeError('Havel Hakimi: degree sequence is not realisable')
                     currentNeighborList -= 1
 
@@ -297,22 +217,13 @@ class HavelHakimi(AbstractGraphGenerator):
                     # move this many items from current list to next one
                     for i in range(num):
                         dan = nodesByDeficit[currentNeighborList][0]#.pop(0)
-                        #dan[0] -= 1
                         nodesByDeficit[currentNeighborList - 1].insert(0, (dan[0] -1, dan[1]))
                         nodesByDeficit[currentNeighborList].pop(0)
                     currentNeighborList += 1
             maxDeficit -= 1 
 
-        t00 = time.time()
-        #self.N_swap = 10 * self.graph.numberOfEdges
-        #self.graph.edge_set = set(self.graph.edges)
         counter_edge = Counter(self.graph.edges)
         multiple = [edge for edge in self.graph.edges if counter_edge[edge] >1]
-        #ipdb.set_trace()
-        #assert sorted(list(self.graph.edge_set)) == sorted(self.graph_edges)
-        #print('{} to convert to set'.format(time.time() - t00))
-        #ipdb.set_trace()
-        #self.graph = self.generator.generate()
 
 class GNM(AbstractGraphGenerator):
     """ Reimplementation of NetworkX GNM model Using Networkit API
@@ -327,9 +238,13 @@ class GNM(AbstractGraphGenerator):
         seed: int
             random seed
     """
-    def __init__(self, n, m, nodes=None, logger=None, seed=None):
+    def __init__(self, n, m, seed=None, nodes=None, logger=None):
         self.n = n
         self.m = m 
+
+        if seed is not None:
+            np.random.seed(seed)
+
         if nodes is None:
             self.nodes = set(range(n))
         else:
@@ -345,16 +260,14 @@ class GNM(AbstractGraphGenerator):
             self.logger = logging.getLogger()
         else:
             self.logger = logger
-        #self.seed = seed if not None else None ## TODO
 
     @staticmethod ## 
     def _clique(G):
         """ From Networkx.generators.classic.complete_graph
         """
-        #n_name, nodes = n
-        #G = empty_graph(n_name, create_using)
         import itertools
-        #nodes = range(G.numberOfNodes)
+
+        # generate clique by getting all possible combinations of 2 nodes
         nodes = G.nodes
         if len(nodes) > 1:
             edges = itertools.combinations(nodes, 2)
@@ -363,10 +276,8 @@ class GNM(AbstractGraphGenerator):
 
     def run(self):
         """ can add nodes to existing GNM, and create GNM of these nodes """ 
-        #self.graph = nk.graph.Graph()
         self.graph = Graph(edges=[], nodes=self.nodes,
                  degrees=None, logger=self.logger)
-        #self.graph.addNodes(self.n)
 
         # if n = 1, return 1 node graph,
         # if m = n(n-1)/2, return clique
@@ -395,19 +306,4 @@ class GNM(AbstractGraphGenerator):
                 self.graph.addEdge(edge)
                 edge_count = edge_count + 1
         return
-#class compareNetworkit(AbstractGraphGenerator):
-#    ## TODO ADD AS UNIT TEST <3 
-#    def __init__(self, degree_list,
-#            logger):
-#
-#        self.logger = logger
-#        self.degree_list = degree_list
-#
-#    def run(self):
-#        #ipdb.set_trace()
-#        self.generator = HavelHakimiGenerator(self.degree_list, ignoreIfRealizable=False)
-#        self.graph = self.generator.generate()
-#        print(sorted(self.graph.edges()))
-#        model = HavelHakimi(self.degree_list, 0, self.logger)
-#        model.run()
-#        print(sorted(model.graph.edges) )
+

@@ -1,7 +1,8 @@
-import numpy as np
-import random
 import ipdb
 import time
+import random
+import numpy as np
+
 from collections import Counter
 
 class Graph():
@@ -10,17 +11,19 @@ class Graph():
     Attributes:
     -----------
     edges: list of tuple of int
-        all the edges (u,v) in the graph, with u<v
-    graph: dict node -> all its edges
-        TODO might not be needed
-    is_sorted: bool
-        true if the list of edges is sorted
+        all the edges (u,v) in the graph, with u<v, stored as a list
+    edge_set: set of tuple of int
+        all the edges (u,v) in the graph, with u<v, stored as a set
+    nodes: list of int,
+        the node names
     degree: list of int
         the degree sequence of the graph
+    logger: logger,
+        a logger
     """
     def __init__(self, edges=[], nodes=set(),
             edge_set = None,
-            is_sorted=False, degrees=None,
+            degrees=None,
             logger=None):
         self.edges = edges
         if edge_set is None:
@@ -29,14 +32,12 @@ class Graph():
             self.edge_set = edge_set
         self.nodes = nodes
         self.weight = None
-        #self.graph = graph
-        #self.is_sorted = is_sorted ## TODO might not be needed
         self._degrees = degrees
         self.logger = logger
 
     def __add__(self, other):
         """ Merge two graphs.
-            When node names are share, assume same nodes
+            When node names are shared, assume same nodes
             Raise Attribute Error when edges are present in both.
         """
         # raise error if multiple edge detected
@@ -47,29 +48,33 @@ class Graph():
             total_edge_set = self.edge_set.union(other.edge_set)
             total_edges = self.edges + other.edges
             #total_degrees = Counter(elem for elem in list(sum(toedges, ())))
-            return Graph(edges = total_edges, nodes=total_nodes, edge_set=total_edge_set, logger = self.logger)
+            return Graph(edges = total_edges, nodes=total_nodes,
+                    edge_set=total_edge_set, logger = self.logger)
 
     def shuffle_weights(self):
-        assert self.weight is not None, "Attempting to shuffle weights, but weights not defined."
+        assert self.weight is not None, ("Attempting to shuffle weights,"
+                                         "but weights not defined.")
         np.random.shuffle(self.weight)
 
 
-    def _write_graphOnly(self):
-        with open() as fout:
+    def _write_graphOnly(self, output):
+        with open(output, 'w') as fout:
             for edge in self.edges:
                 fout.write('{}-{}'.format(edge[0], edge[1]))
 
     def _write_weightedGraph(self):
-        assert len(self.edges) == len(self.weight), "Graph has {} weights and {} edges, should have the same number".format(len(self.weight), len(self.edges))
-        with open('mongraph.txt', 'w') as fout:
+        assert len(self.edges) == len(self.weight), ("Graph has {} weights"
+              "and {} edges, should have the same number".format(
+                  len(self.weight), len(self.edges)))
+        with open(open, 'w') as fout:
             for edge, weight in zip(self.edges, self.weight):
                 fout.write('{}-{} {}\n'.format(edge[0], edge[1], weight))
 
-    def write_graph(self):
+    def write_graph(self, output):
         if self.weight is None:
-            self._write_graphOnly()
+            self._write_graphOnly(output)
         else:
-            self._write_weightedGraph()
+            self._write_weightedGraph(output)
 
     @property
     def degrees(self):
@@ -80,36 +85,24 @@ class Graph():
             self._degrees = Counter(elem for elem in list(sum(self.edges, ())))
         return self._degrees
 
-    #@property
-    #def edge_set(self):
-
-    #    if self._edge_set is None:
-    #        self._edge_set = set(self.edges)
-    #    return self._edge_set
-
-    #@edge_set.setter
-    #def edge_set(self, edge_set):
-    #    assert type(edge_set) == set
-    #    self._edge_set = edge_set
-
-    def hasEdge(self, _edge):
+    def hasEdge(self, _edge): ## TODO should check order of u,v
         return _edge in self.edge_set
 
-    def hasEdge_slow(self, _edge):
-        """ Check if the graph has requested edge (u,v). 
-            Reorder edge if v>u.
-        """
-        (u, v) = _edge
-        edge = (u, v) if u < v else (v, u)
-        if edge in self.edge_set:
-            return True
-        else:
-            return False
-        #if ((v>u and (v,u) in self.edge_set)
-        #  or (u<v and (u,v) in self.edge_set)):
-        #    return True
-        #else:
-        #    return False
+    #def hasEdge(self, _edge):
+    #    """ Check if the graph has requested edge (u,v). 
+    #        Reorder edge if v>u.
+    #    """
+    #    (u, v) = _edge
+    #    edge = (u, v) if u < v else (v, u)
+    #    if edge in self.edge_set:
+    #        return True
+    #    else:
+    #        return False
+    #    #if ((v>u and (v,u) in self.edge_set)
+    #    #  or (u<v and (u,v) in self.edge_set)):
+    #    #    return True
+    #    #else:
+    #    #    return False
 
     def _replaceEdges(self, edge1_idx, edge2_idx, new_edge1, new_edge2):
         self.edge_set.remove(self.edges[edge1_idx])
@@ -132,17 +125,18 @@ class Graph():
 
              Parameters:
              ----------
-             edge1, edge2: tuple or int
-                if edges are tuple, get index in edge list (slower), and swap them
-                if edges are ints, simply swap them (faster)
-
+             edge1_idx, edge2_idx: ints
+                index of edges to be swapped
         """
         #assert type(edge1_idx) == int, 'expecting integer for swapEdgeIdx'
         #assert type(edge2_idx) == int, 'expecting integer for swapEdgeIdx'
-        #assert edge1_idx < len(self.edges), "edge index for swap is out of bound"
-        #assert edge2_idx < len(self.edges), "edge index for swap is out of bound"
+        #assert edge1_idx < len(self.edges), 
+        #    "edge index for swap is out of bound"
+        #assert edge2_idx < len(self.edges), 
+        #    "edge index for swap is out of bound"
         #assert edge1_idx != edge2_idx, "swapping edge with itself"
 
+        # get edges
         (e1_n1, e1_n2)  = self.edges[edge1_idx]
 
         # 1/2 chance of reversing _edge2 : equivalent to picking both
@@ -152,87 +146,34 @@ class Graph():
         if e1_n1 in edge2 or e1_n2 in edge2:
             return False
 
+        # reversing edge 2 or not
         if reverse:
             (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
         else:
             (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
 
-        #if e1_n1 in (e2_n2, e2_n1:
-        #    return False
-
         # get new edges
         new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
         new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
         
-        # check if swap is possible
-        #assert self.hasEdge((e1_n1, e1_n2)), "attempting to swap an edge that is not in graph"
-        #assert self.hasEdge((e2_n1, e2_n2)), "attempting to swap an edge that is not in graph"
-        #assert not self.hasEdge(new_edge1), "swapped edge already exist in graph"
-        #assert not self.hasEdge(new_edge2), "swapped edge already exist in graph"
+        #assert self.hasEdge((e1_n1, e1_n2)), 
+        #   "attempting to swap an edge that is not in graph"
+        #assert self.hasEdge((e2_n1, e2_n2)),
+        #   "attempting to swap an edge that is not in graph"
+        #assert not self.hasEdge(new_edge1), 
+        #    "swapped edge already exist in graph"
+        #assert not self.hasEdge(new_edge2),
+        #   "swapped edge already exist in graph"
+
+        # check if new edges already exist
         if new_edge1 in self.edge_set or new_edge2 in self.edge_set:
             return False
 
         # replace edges
         self._replaceEdges(edge1_idx, edge2_idx, new_edge1, new_edge2)
 
-        #self.edge_set.remove(self.edges[edge1_idx])
-        #self.edge_set.remove(self.edges[edge2_idx])
-
-        #self.edge_set.add(new_edge1)
-        #self.edge_set.add(new_edge2)
-
-        #self.edges[edge1_idx] = new_edge1
-        #self.edges[edge2_idx] = new_edge2
+        # if swap was successful return true
         return True
-
-    #def swapEdge(self, edge1, edge2):
-    #    """
-    #         Given two edges e1=(e1_n1, e1_n2 and e2=(e2_n1, e2_n2)
-    #         swap the edges to get e1'=(e1_n1, e2_n2), e2'=(e2_n1, e1_n2):
-
-    #         e1_n1 --- e1_n2       e1_n1 \\ / e1_n2
-    #                          =>          x
-    #         e2_n1 --- e2_n2       e2_n1 / \\ e2_n2
-
-    #         Parameters:
-    #         ----------
-    #         edge1, edge2: tuple or int
-    #            if edges are tuple, get index in edge list (slower), and swap them
-    #            if edges are ints, simply swap them (faster)
-
-    #    """
-    #    assert type(edge1) == tuple, "expecting tuple in swapEdge"
-    #    assert type(edge2) == tuple, "expecting tuple in swapEdge"
-    #    assert edge1 != edge2, "swapping edge with itself"
-
-    #    # get swapped edges
-    #    #new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
-    #    #new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
-    #    new_edge1 = (edge1[0], edge2[1]) if edge1[0] < edge2[1] else (edge2[1], edge1[0])
-    #    new_edge2 = (edge2[0], edge1[1]) if edge2[0] < edge1[1] else (edge1[1], edge2[0])
-
-    #    # check if swap if possible
-    #    assert self.hasEdge(edge1), "attempting to swap an edge that is not in graph"
-    #    assert self.hasEdge(edge2), "attempting to swap an edge that is not in graph"
-    #    assert not self.hasEdge(new_edge1), "swapped edge already exist in graph"
-    #    assert not self.hasEdge(new_edge2), "swapped edge already exist in graph"
-
-    #    # replace edge in list and set
-    #    edge1_idx = self.edges.index(edge1)
-    #    try:
-    #        edge2_idx = self.edges.index(edge2)
-    #    except:
-
-    #    self._replaceEdges(edge1_idx, edge2_idx, new_edge1, new_edge2)
-
-    #    #self.edge_set.remove(self.edges[edge_index1])
-    #    #self.edge_set.remove(self.edges[edge_index2])
-
-    #    #self.edge_set.add(new_edge1)
-    #    #self.edge_set.add(new_edge2)
-
-    #    #self.edges[edge_index1] = new_edge1 
-    #    #self.edges[edge_index2] = new_edge2
 
     @property
     def numberOfNodes(self):

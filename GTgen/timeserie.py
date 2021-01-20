@@ -7,8 +7,9 @@ class Timeserie():
 
     Attributes:
     -----------
-    timeserie: array
+    serie: array
         the timeserie
+
     """
     def __init__(self, serie = np.array([]), out_path='./timeserie.txt'):
         self.serie = serie

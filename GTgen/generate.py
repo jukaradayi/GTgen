@@ -4,12 +4,11 @@ import yaml
 import shutil
 import logging
 import argparse
+import numpy as np
 
-import graph
-import timeserie
-import weighted_graph
-#from graph import *
-from utils import *
+from GTgen.genGraph import *
+from GTgen.genTimeserie import *
+from GTgen.utils import *
 
 """
 output format
@@ -26,7 +25,8 @@ graph:
 """
 
 def main():
-    parser = argparse.ArgumentParser(description='Graph and Time serie generator')
+    parser = argparse.ArgumentParser(
+            description='Graph and Time serie generator')
     parser.add_argument(
         '-y', '--yaml', metavar='config-file', default='./config.yaml',
         help='The YAML configuration file to read.'
@@ -35,8 +35,8 @@ def main():
         '-o', '--output', default='./',
         help='Folder in which output will be written')
     parser.add_argument(
-        '--to_console', default=False,
-        help='if enabled, write output directly to console (might be useful for piping, might remove...)')
+        '--seed', default=None,
+        help='fix random seed')
     parser.add_argument(
         '-v', '--verbose', default=False,
         help='Be more verbose')
@@ -47,35 +47,63 @@ def main():
     check_config(config)
 
     # instantiate logger
+    if args.verbose:
+        logging.basicConfig(
+                level=logging.DEBUG,
+                format='%(asctime)s %(levelname)-8s %(message)s',
+                datefmt='%m-%d %H:%M'
+                )
+    else:
+        logging.basicConfig(
+                level=logging.INFO,
+                format='%(asctime)s %(levelname)-8s %(message)s',
+                datefmt='%m-%d %H:%M'
+                )
+
+    # instantiate logger
     logger = logging.getLogger()
 
+    # fix random seed
+    if args.seed is None:
+        seed = np.random.choice(10**6)
+    else:
+        seed = args.seed
+    np.random.seed(seed)
+
+    # manage output directory
     if not os.path.isdir(args.output):
         logger.info('create output folder {}'.format(args.output))
         os.makedirs(args.output)
 
+    # generate graph
     if config['Graph']['generate']:
+        graph_output = os.path.join(args.output, 'graph.txt')
         logger.info('generating graph')
-        Model = getattr(graph, config['Graph']['params']['model'])
-        #generator = Model(**config['Graph']['params']['n'], config['Graph']['params']['p'])
-        generator = Model(**config['Graph']['params'], logger)
+        generator = GraphWithAnomaly(
+                config['Graph']['params']['degree'],
+                config['Graph']['params']['numberOfAnomalies'],
+                config['Graph']['params']['n_anomaly'],
+                config['Graph']['params']['m_anomaly'],
+                config['Graph']['params']['N_swap'],
+                config['Graph']['params']['weight'],
+                logger,
+                graph_output,
+                seed)
         generator.run()
 
-
-        # generate weights from dataset
-        weighted = weighted_graph.WeightFromDataset(generator.graph, **config['Graph']['params'])
-        weighted.run()
-        # todo getparams
-        generator.write_graph(os.path.join(args.output, "model.weight"), weighted.weights)
-
+    # generate timeserie
     if config['TimeSerie']['generate']:
         logger.info('generating timeserie')
-        Model = getattr(timeserie, config['TimeSerie']['params']['model'])
-        #generator = Model(config['TimeSerie']['params']['duration'], config['TimeSerie']['params']['bound_up'], config['TimeSerie']['params']['bound_down'])
-        generator = Model(**config['TimeSerie']['params'], logger)
+        timeserie_output = os.path.join(args.output, 'timeserie.txt')
+        generator = TimeserieWithAnomaly(np.array(
+            [val for _, val in config['TimeSerie']['params']['dataset']]),
+                config['TimeSerie']['params']['anomaly_type'],
+                config['TimeSerie']['params']['anomaly_length'], 
+                timeserie_output, logger)
         generator.run()
-        generator.write_TS(os.path.join(args.output, "model.ts"))
+
     # copy yaml in output folder
-    shutil.copyfile(args.yaml, os.path.join( args.output, "benchmark.yaml"))
+    shutil.copyfile(args.yaml, os.path.join( args.output, "config.yaml"))
 
 
 if __name__ == "__main__":
