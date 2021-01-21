@@ -1,3 +1,15 @@
+""" Simple data structure for Graph.
+    A graph object stores:
+        - its nodes as a list of int (the node names are 
+          restricted to integers)
+        - its edges as: 
+            - a list of (u,v) where u<v (to iterate, when order is
+              required)
+            - a set of (u,v) where u<v (for quick search, for example
+              for edge-swap process)
+        - its degree sequence as a dict {node:degree}
+"""
+
 import ipdb
 import time
 import random
@@ -119,9 +131,9 @@ class Graph():
         """ Given two edges e1=(e1_n1, e1_n2) and e2=(e2_n1, e2_n2), 
            swap the edges to get e1'=(e1_n1, e2_n2), e2'=(e2_n1, e1_n2):
 
-             e1_n1 --- e1_n2       e1_n1 \\ / e1_n2
-                              =>          x
-             e2_n1 --- e2_n2       e2_n1 / \\ e2_n2
+           >>>  e1_n1 --- e1_n2       e1_n1 \\ / e1_n2
+           >>>                   =>          x
+           >>>  e2_n1 --- e2_n2       e2_n1 / \\ e2_n2
 
              Parameters:
              ----------

@@ -1,3 +1,35 @@
+"""
+    Implementation of Havel Hakimi and GNM graph models.
+    To implement other graph Model, simply inherit the class 
+    AbstractGraphGenerator, and implement the __init__ and run methods
+
+    Usage example:
+
+
+    >>> from GTgen.graphModels import HavelHakimi
+
+    >>> # list of (nodes, degree)
+    >>> sequence = [(0,4), (1,2), (2,2), (3,4), (5,2), (6,2)]
+    >>> N_swap = 0
+    >>> logger = lo
+    >>> logging.basicConfig(
+    >>>         level=logging.INFO,
+    >>>         format='%(asctime)s %(levelname)-8s %(message)s',
+    >>>         datefmt='%m-%d %H:%M'
+    >>>         )
+
+    >>> # instantiate logger
+    >>> logger = logging.getLogger()
+
+    >>> model = HavelHakimi(sequence  , N_swap, logger, seed=None)
+
+    >>> # run Havel Hakimi
+    >>> model.run()
+
+    >>> print(model.graph)
+"""
+
+
 import ipdb
 import time
 import random
@@ -12,6 +44,7 @@ class AbstractGraphGenerator():
     """ Abstract Class for graph Generators
         Generate a random graph, picked uniformely, given a number of nodes,
         a number of edges, and a degree sequence.
+
         Attributes:
         -----------
         n: int
@@ -135,7 +168,10 @@ class AbstractGraphGenerator():
 
 class HavelHakimi(AbstractGraphGenerator):
     """
-        Parameters:
+        Python implementation of Networkit Havel Hakimi with in-house 
+        graph data structure.
+        
+        Attributes:
         -----------
         sequence : np.array
             Degree sequence and node names to realize. Must be non-increasing.
@@ -226,10 +262,24 @@ class HavelHakimi(AbstractGraphGenerator):
         multiple = [edge for edge in self.graph.edges if counter_edge[edge] >1]
 
 class GNM(AbstractGraphGenerator):
-    """ Reimplementation of NetworkX GNM model Using Networkit API
-        (useful to get randomEdge method, amongst other things)
-        
-    Parameters:
+    """ Reimplementation of NetworkX GNM model.
+    
+    The complete process is: 
+
+    .. code-block:: python
+
+        - if n == 0:
+            - return empty graph
+        - if m == n*(n-1)/2:
+            # return clique as combinations of all nodes as edges
+            - edges = itertools.combinations(nodes, 2)
+        - while edge_count <m:
+            - pick two nodes (u,v) such that u != v
+            - if (u,v) not in graph:
+                - edge_count += 1
+                - add (u,v) to graph
+        - return graph
+    Attributes:
     -----------
         n: int
             number of nodes

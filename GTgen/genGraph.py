@@ -1,3 +1,21 @@
+"""
+    Using degrees sequence `S_dg` and weights sequence `S_w` from real dataset,
+    generate `numberOfAnomaly` graph G_an_i, with GNM model
+    with n_anomaly nodes and m_anomaly edges.
+    Then, get normal graph `G_n` degree sequence such that 
+
+    >>> S_dn + sum(S_dan_i) for i in 0..numberOfAnomaly) = S_dg
+    
+    where `S_dn` is the degree sequence of normal graph, and `S_dan_i` is the 
+    degree sequence of the ith anomaly graph.
+
+    With degree sequence `S_dn`, create normal graph using Havel Hakimi model,
+    and `N_swap` random swap to get uniformly randomly picked graph.
+    Finally, compare edge sets between `G_n` and `G_an_i` 
+    for i in 0..numberOfAnomaly and perform edge swaps in `G_n`
+    and `G_an_i` to get rid of multiple edges (to get simple graph)
+"""
+
 import time
 import random
 import numpy as np
@@ -7,12 +25,6 @@ from GTgen.graphModels import *
 
 class GraphWithAnomaly():
     """
-        Using degrees sequence S_d and weights sequence S_w from real dataset,
-        generate numberOfAnomaly 'anomaly' graph G_an_i, with GNM model 
-        with n_anomaly nodes and m_anomaly edges.
-        Then, create 'normal' graph G_n such that 
-        seq(G_n) + sum(seq(G_an_i) for i in 0..numberOfAnomaly) = S_d
-
         Attributes:
         -----------
         n_anomaly: int,
@@ -96,27 +108,39 @@ class GraphWithAnomaly():
             self.G_anomaly += anomalyModel.graph
 
 
-    def _get_normality_degree_seq(self):
+    def get_normality_degree_seq(self):
         """ Get degree sequence for 'normal' graph, by pluging anomaly node in 
             global graph degree sequence, and substracting the anomaly 
             degrees to get normal degree.
-            global degree sequence = (gd1, gd2, ... gdn)
-            normal degree sequence = (nd1, nd2, ... ndn)
-            anomalies degree sequences = (ad1, ad2, ... adn)
+            global degree sequence GD = (gd1, gd2, ... gdn)
+            normal degree sequence ND = (nd1, nd2, ... ndn)
+            anomalies degree sequence AD = (ad1, ad2, ... adn)
             where
-            ```
+
+            .. code-block:: python
+
                 gdi = ndi + adi
-            ```
-            In practice : # TODO pseudo code with nice math display 
-            -For i in (1, n), get list of indices (k1, ... kj) such that
-            ```
-                for m in (1...j)  gd_km >= ad_km & gd_km not already selected
-            ```
-            -Pick n in (1...j) uniformly at random, attribute node _km of 
-             anomaly to node _km of global graph, and mark node _km of global
-             graph as already selected.
-            -When picking a node that has already been selected, start from
-             scratch.
+            
+
+            In practice : 
+
+            .. code-block:: python
+
+                - while (has_duplicate_node):
+                    - For node_i in (1, n):
+                        - get list of indices (k1, ... kj) such that :
+                           {gd_km >= ad_km for m in (1...j)}
+                        - pick k_idx in (k1...kj) uniformly at random, attribute 
+                        node node_i of anomaly to node _km of global graph
+                        - if node _km is already selected: 
+                            - had_duplicate_node=True
+                            - break
+                        - else:
+                            - mark node _km as selected
+                    - Finally:
+                        - has_duplicate_node=False
+            
+
         """
 
         # check realisation is at least possible:
@@ -177,7 +201,7 @@ class GraphWithAnomaly():
                     self.normal_degree_list[norm_node, 0] = norm_node
                     self.normal_degree_list[norm_node, 1] = degree
 
-    def _generate_normality(self):
+    def generate_normality(self):
         """ Generate 'normal' graph using Havel-Hakimi algorithm
             and edge swaps
         """
@@ -313,9 +337,9 @@ class GraphWithAnomaly():
         self.logger.info('generating anomaly')
         self._generate_anomaly()
         self.logger.info('getting normal graph degree sequence')
-        self._get_normality_degree_seq()
+        self.get_normality_degree_seq()
         self.logger.info('generating normal graph')
-        self._generate_normality()
+        self.generate_normality()
         self.logger.info('checking for multiple edges')
         multiple_edges = self._check_multiple_edges()
         if len(multiple_edges) > 0:

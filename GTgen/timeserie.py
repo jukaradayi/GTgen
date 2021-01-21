@@ -1,3 +1,9 @@
+""" Timeserie object.
+    A timeserie is stored as a numpy 1D array.
+    The class implement shuffle_timeserie(index_low, index_high) that allows to
+    shuffle the timeserie between index_low and index_high
+"""
+
 import ipdb
 import numpy as np
 import matplotlib.pyplot as plt

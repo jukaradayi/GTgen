@@ -24,7 +24,7 @@ def test_multiple_edges(logger):
             nodes={0,1,2,3}, degrees=None, logger=logger)
 
     # check normality degree sequence
-    G._get_normality_degree_seq()
+    G.get_normality_degree_seq()
     normality_degrees = [deg for _, deg in G.global_degree_list]
 
     # assign anomaly nodes to normal nodes

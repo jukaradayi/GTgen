@@ -1,2 +1,4 @@
 GTgen.egg-info
+build/*
+doc/build/*
 *.pyc
