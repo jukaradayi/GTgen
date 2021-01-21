@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>GTgen.graph &mdash; GTgen 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GTgen
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../python/index.html">Python API Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GTgen</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>GTgen.graph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for GTgen.graph</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Simple data structure for Graph.</span>
+<span class="sd">    A graph object stores:</span>
+<span class="sd">        - its nodes as a list of int (the node names are </span>
+<span class="sd">          restricted to integers)</span>
+<span class="sd">        - its edges as: </span>
+<span class="sd">            - a list of (u,v) where u&lt;v (to iterate, when order is</span>
+<span class="sd">              required)</span>
+<span class="sd">            - a set of (u,v) where u&lt;v (for quick search, for example</span>
+<span class="sd">              for edge-swap process)</span>
+<span class="sd">        - its degree sequence as a dict {node:degree}</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">ipdb</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+
+<div class="viewcode-block" id="Graph"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph">[docs]</a><span class="k">class</span> <span class="nc">Graph</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Graph Class</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    edges: list of tuple of int</span>
+<span class="sd">        all the edges (u,v) in the graph, with u&lt;v, stored as a list</span>
+<span class="sd">    edge_set: set of tuple of int</span>
+<span class="sd">        all the edges (u,v) in the graph, with u&lt;v, stored as a set</span>
+<span class="sd">    nodes: list of int,</span>
+<span class="sd">        the node names</span>
+<span class="sd">    degree: list of int</span>
+<span class="sd">        the degree sequence of the graph</span>
+<span class="sd">    logger: logger,</span>
+<span class="sd">        a logger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edges</span><span class="o">=</span><span class="p">[],</span> <span class="n">nodes</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
+            <span class="n">edge_set</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">degrees</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span>
+        <span class="k">if</span> <span class="n">edge_set</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span> <span class="o">=</span> <span class="n">edge_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_degrees</span> <span class="o">=</span> <span class="n">degrees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Merge two graphs.</span>
+<span class="sd">            When node names are shared, assume same nodes</span>
+<span class="sd">            Raise Attribute Error when edges are present in both.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># raise error if multiple edge detected</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">edge_set</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+            <span class="n">total_edge_set</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">edge_set</span><span class="p">)</span>
+            <span class="n">total_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">edges</span>
+            <span class="c1">#total_degrees = Counter(elem for elem in list(sum(toedges, ())))</span>
+            <span class="k">return</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span> <span class="o">=</span> <span class="n">total_edges</span><span class="p">,</span> <span class="n">nodes</span><span class="o">=</span><span class="n">total_nodes</span><span class="p">,</span>
+                    <span class="n">edge_set</span><span class="o">=</span><span class="n">total_edge_set</span><span class="p">,</span> <span class="n">logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Graph.shuffle_weights"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.shuffle_weights">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Attempting to shuffle weights,&quot;</span>
+                                         <span class="s2">&quot;but weights not defined.&quot;</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_write_graphOnly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
+                <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">edge</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_write_weightedGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Graph has </span><span class="si">{}</span><span class="s2"> weights&quot;</span>
+              <span class="s2">&quot;and </span><span class="si">{}</span><span class="s2"> edges, should have the same number&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                  <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">)))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">open</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">edge</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">):</span>
+                <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">edge</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">weight</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Graph.write_graph"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.write_graph">[docs]</a>    <span class="k">def</span> <span class="nf">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_graphOnly</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_weightedGraph</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">degrees</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; list of node degrees, unordered&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_degrees</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># list(sum(edges, ())) flattens [(n1, n2), (n1, n3)] in [n1,n2,n1,n3]</span>
+            <span class="c1"># so just count number of occurence of each node in flattened list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_degrees</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">elem</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="p">())))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_degrees</span>
+
+<div class="viewcode-block" id="Graph.hasEdge"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.hasEdge">[docs]</a>    <span class="k">def</span> <span class="nf">hasEdge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_edge</span><span class="p">):</span> <span class="c1">## TODO should check order of u,v</span>
+        <span class="k">return</span> <span class="n">_edge</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span></div>
+
+    <span class="c1">#def hasEdge(self, _edge):</span>
+    <span class="c1">#    &quot;&quot;&quot; Check if the graph has requested edge (u,v). </span>
+    <span class="c1">#        Reorder edge if v&gt;u.</span>
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#    (u, v) = _edge</span>
+    <span class="c1">#    edge = (u, v) if u &lt; v else (v, u)</span>
+    <span class="c1">#    if edge in self.edge_set:</span>
+    <span class="c1">#        return True</span>
+    <span class="c1">#    else:</span>
+    <span class="c1">#        return False</span>
+    <span class="c1">#    #if ((v&gt;u and (v,u) in self.edge_set)</span>
+    <span class="c1">#    #  or (u&lt;v and (u,v) in self.edge_set)):</span>
+    <span class="c1">#    #    return True</span>
+    <span class="c1">#    #else:</span>
+    <span class="c1">#    #    return False</span>
+
+    <span class="k">def</span> <span class="nf">_replaceEdges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge1_idx</span><span class="p">,</span> <span class="n">edge2_idx</span><span class="p">,</span> <span class="n">new_edge1</span><span class="p">,</span> <span class="n">new_edge2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge1_idx</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge2_idx</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge1_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge2_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge2</span>
+
+
+<div class="viewcode-block" id="Graph.swapEdge"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.swapEdge">[docs]</a>    <span class="k">def</span> <span class="nf">swapEdge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge1_idx</span><span class="p">,</span> <span class="n">edge2_idx</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Given two edges e1=(e1_n1, e1_n2) and e2=(e2_n1, e2_n2), </span>
+<span class="sd">           swap the edges to get e1&#39;=(e1_n1, e2_n2), e2&#39;=(e2_n1, e1_n2):</span>
+
+<span class="sd">           &gt;&gt;&gt;  e1_n1 --- e1_n2       e1_n1 \\ / e1_n2</span>
+<span class="sd">           &gt;&gt;&gt;                   =&gt;          x</span>
+<span class="sd">           &gt;&gt;&gt;  e2_n1 --- e2_n2       e2_n1 / \\ e2_n2</span>
+
+<span class="sd">             Parameters:</span>
+<span class="sd">             ----------</span>
+<span class="sd">             edge1_idx, edge2_idx: ints</span>
+<span class="sd">                index of edges to be swapped</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#assert type(edge1_idx) == int, &#39;expecting integer for swapEdgeIdx&#39;</span>
+        <span class="c1">#assert type(edge2_idx) == int, &#39;expecting integer for swapEdgeIdx&#39;</span>
+        <span class="c1">#assert edge1_idx &lt; len(self.edges), </span>
+        <span class="c1">#    &quot;edge index for swap is out of bound&quot;</span>
+        <span class="c1">#assert edge2_idx &lt; len(self.edges), </span>
+        <span class="c1">#    &quot;edge index for swap is out of bound&quot;</span>
+        <span class="c1">#assert edge1_idx != edge2_idx, &quot;swapping edge with itself&quot;</span>
+
+        <span class="c1"># get edges</span>
+        <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge1_idx</span><span class="p">]</span>
+
+        <span class="c1"># 1/2 chance of reversing _edge2 : equivalent to picking both</span>
+        <span class="c1"># directions at random</span>
+        <span class="n">edge2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge2_idx</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">e1_n1</span> <span class="ow">in</span> <span class="n">edge2</span> <span class="ow">or</span> <span class="n">e1_n2</span> <span class="ow">in</span> <span class="n">edge2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># reversing edge 2 or not</span>
+        <span class="k">if</span> <span class="n">reverse</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span> <span class="o">=</span> <span class="n">edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+
+        <span class="c1"># get new edges</span>
+        <span class="n">new_edge1</span> <span class="o">=</span> <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e1_n1</span> <span class="o">&lt;</span> <span class="n">e2_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e1_n1</span><span class="p">)</span>
+        <span class="n">new_edge2</span> <span class="o">=</span> <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e2_n1</span> <span class="o">&lt;</span> <span class="n">e1_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e1_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span>
+        
+        <span class="c1">#assert self.hasEdge((e1_n1, e1_n2)), </span>
+        <span class="c1">#   &quot;attempting to swap an edge that is not in graph&quot;</span>
+        <span class="c1">#assert self.hasEdge((e2_n1, e2_n2)),</span>
+        <span class="c1">#   &quot;attempting to swap an edge that is not in graph&quot;</span>
+        <span class="c1">#assert not self.hasEdge(new_edge1), </span>
+        <span class="c1">#    &quot;swapped edge already exist in graph&quot;</span>
+        <span class="c1">#assert not self.hasEdge(new_edge2),</span>
+        <span class="c1">#   &quot;swapped edge already exist in graph&quot;</span>
+
+        <span class="c1"># check if new edges already exist</span>
+        <span class="k">if</span> <span class="n">new_edge1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span> <span class="ow">or</span> <span class="n">new_edge2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># replace edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_replaceEdges</span><span class="p">(</span><span class="n">edge1_idx</span><span class="p">,</span> <span class="n">edge2_idx</span><span class="p">,</span> <span class="n">new_edge1</span><span class="p">,</span> <span class="n">new_edge2</span><span class="p">)</span>
+
+        <span class="c1"># if swap was successful return true</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">numberOfNodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="p">()))</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">numberOfEdges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Graph.addEdge"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.addEdge">[docs]</a>    <span class="k">def</span> <span class="nf">addEdge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add an edge in the graph&quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">edge</span>
+        <span class="c1">#assert n1 != n2, &quot;can&#39;t add self loop&quot;</span>
+        <span class="c1">#assert not self.hasEdge(edge), &quot;can&#39;t add multi edge&quot;</span>
+
+        <span class="c1"># keep nodes sorted</span>
+        <span class="k">if</span> <span class="n">n1</span> <span class="o">&lt;</span> <span class="n">n2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n2</span><span class="p">,</span> <span class="n">n1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">n2</span><span class="p">,</span> <span class="n">n1</span><span class="p">))</span>
+
+        <span class="c1"># append nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Graph.addEdgesFrom"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.addEdgesFrom">[docs]</a>    <span class="k">def</span> <span class="nf">addEdgesFrom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">edge_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add a list of edges&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edge_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">addEdge</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Graph.shuffle_edges"><a class="viewcode-back" href="../../python/graph.html#GTgen.graph.Graph.shuffle_edges">[docs]</a>    <span class="k">def</span> <span class="nf">shuffle_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; shuffle all edges&quot;&quot;&quot;</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, ComplexNetworks.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

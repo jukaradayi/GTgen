@@ -1,0 +1,556 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>GTgen.genGraph &mdash; GTgen 1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GTgen
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../python/index.html">Python API Documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GTgen</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>GTgen.genGraph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for GTgen.genGraph</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Using degrees sequence `S_dg` and weights sequence `S_w` from real dataset,</span>
+<span class="sd">    generate `numberOfAnomaly` graph G_an_i, with GNM model</span>
+<span class="sd">    with n_anomaly nodes and m_anomaly edges.</span>
+<span class="sd">    Then, get normal graph `G_n` degree sequence such that </span>
+
+<span class="sd">    &gt;&gt;&gt; S_dn + sum(S_dan_i) for i in 0..numberOfAnomaly) = S_dg</span>
+<span class="sd">    </span>
+<span class="sd">    where `S_dn` is the degree sequence of normal graph, and `S_dan_i` is the </span>
+<span class="sd">    degree sequence of the ith anomaly graph.</span>
+
+<span class="sd">    With degree sequence `S_dn`, create normal graph using Havel Hakimi model,</span>
+<span class="sd">    and `N_swap` random swap to get uniformly randomly picked graph.</span>
+<span class="sd">    Finally, compare edge sets between `G_n` and `G_an_i` </span>
+<span class="sd">    for i in 0..numberOfAnomaly and perform edge swaps in `G_n`</span>
+<span class="sd">    and `G_an_i` to get rid of multiple edges (to get simple graph)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">GTgen.graphModels</span> <span class="kn">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="GraphWithAnomaly"><a class="viewcode-back" href="../../python/genGraph.html#GTgen.genGraph.GraphWithAnomaly">[docs]</a><span class="k">class</span> <span class="nc">GraphWithAnomaly</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attributes:</span>
+<span class="sd">        -----------</span>
+<span class="sd">        n_anomaly: int,</span>
+<span class="sd">            number of nodes in anomaly</span>
+<span class="sd">        m_anomaly: int,</span>
+<span class="sd">            number of edges in anomaly</span>
+<span class="sd">        numberOfAnomaly: int,</span>
+<span class="sd">            number of anomaly graph to generate. Each anomaly graph</span>
+<span class="sd">            is generated with n_anomly nodes and m_anomaly edges.</span>
+<span class="sd">        N_swap: int,</span>
+<span class="sd">            The &#39;normal Graph&#39; G_n will be generated with </span>
+<span class="sd">            N_swap * N_edges edge swap, where N_edges is its number of edges</span>
+<span class="sd">        weight: list of tuples,</span>
+<span class="sd">            weight distribution, in the format [(val, num)] where val is the </span>
+<span class="sd">            weight value, and num is the number of edges having that weight.</span>
+<span class="sd">        output: string, </span>
+<span class="sd">            path to the desired output file</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">degree_list</span><span class="p">,</span>
+            <span class="n">numberOfAnomaly</span><span class="p">,</span>
+            <span class="n">n_anomaly</span><span class="p">,</span>
+            <span class="n">m_anomaly</span><span class="p">,</span> 
+            <span class="n">N_swap</span><span class="p">,</span>
+            <span class="n">weight</span><span class="p">,</span>
+            <span class="n">logger</span><span class="p">,</span>
+            <span class="n">output</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="c1"># objective degree sequence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">degree_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># anomaly parameters to generate Erdos Renyi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numberOfAnomaly</span> <span class="o">=</span> <span class="n">numberOfAnomaly</span> <span class="c1"># number of anomalies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_anomaly</span> <span class="o">=</span> <span class="n">n_anomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m_anomaly</span> <span class="o">=</span> <span class="n">m_anomaly</span> <span class="c1"># pick erdos renyi for anomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anomaly_seq</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_anomalies</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># graph</span>
+
+        <span class="c1"># normal graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">N_edges</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">sum</span><span class="p">([</span><span class="n">deg</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span><span class="n">deg</span> <span class="ow">in</span> <span class="n">degree_list</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_swap</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_swap</span> <span class="o">*</span> <span class="n">N_edges</span><span class="p">)</span>
+
+        <span class="c1"># output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+
+        <span class="c1"># weight vector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N_edges</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">prev_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">weight</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="n">prev_idx</span><span class="p">:</span><span class="n">prev_idx</span><span class="o">+</span><span class="n">num</span><span class="p">]</span> <span class="o">=</span>  <span class="n">val</span>
+            <span class="n">prev_idx</span> <span class="o">+=</span> <span class="n">num</span>
+
+    <span class="k">def</span> <span class="nf">_generate_anomaly</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Generate numberOfAnomaly anomalies using GNM model.</span>
+<span class="sd">            The anomalies are concatenated in the same graph object, and</span>
+<span class="sd">            the node sequence is increasing</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># instantiate anomaly graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">nodes</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+
+        <span class="c1"># generate each anomaly using GNM model, nodes are integers in</span>
+        <span class="c1"># increasing order</span>
+        <span class="k">for</span> <span class="n">an_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numberOfAnomaly</span><span class="p">):</span>
+            <span class="n">anomalyModel</span> <span class="o">=</span> <span class="n">GNM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_anomaly</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_anomaly</span><span class="p">,</span>
+                    <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_anomaly</span><span class="o">*</span><span class="n">an_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_anomaly</span><span class="o">*</span><span class="p">(</span><span class="n">an_i</span><span class="o">+</span><span class="mi">1</span><span class="p">))),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+            <span class="n">anomalyModel</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span> <span class="o">+=</span> <span class="n">anomalyModel</span><span class="o">.</span><span class="n">graph</span>
+
+
+<div class="viewcode-block" id="GraphWithAnomaly.get_normality_degree_seq"><a class="viewcode-back" href="../../python/genGraph.html#GTgen.genGraph.GraphWithAnomaly.get_normality_degree_seq">[docs]</a>    <span class="k">def</span> <span class="nf">get_normality_degree_seq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get degree sequence for &#39;normal&#39; graph, by pluging anomaly node in </span>
+<span class="sd">            global graph degree sequence, and substracting the anomaly </span>
+<span class="sd">            degrees to get normal degree.</span>
+<span class="sd">            global degree sequence GD = (gd1, gd2, ... gdn)</span>
+<span class="sd">            normal degree sequence ND = (nd1, nd2, ... ndn)</span>
+<span class="sd">            anomalies degree sequence AD = (ad1, ad2, ... adn)</span>
+<span class="sd">            where</span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                gdi = ndi + adi</span>
+<span class="sd">            </span>
+
+<span class="sd">            In practice : </span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                - while (has_duplicate_node):</span>
+<span class="sd">                    - For node_i in (1, n):</span>
+<span class="sd">                        - get list of indices (k1, ... kj) such that :</span>
+<span class="sd">                           {gd_km &gt;= ad_km for m in (1...j)}</span>
+<span class="sd">                        - pick k_idx in (k1...kj) uniformly at random, attribute </span>
+<span class="sd">                        node node_i of anomaly to node _km of global graph</span>
+<span class="sd">                        - if node _km is already selected: </span>
+<span class="sd">                            - had_duplicate_node=True</span>
+<span class="sd">                            - break</span>
+<span class="sd">                        - else:</span>
+<span class="sd">                            - mark node _km as selected</span>
+<span class="sd">                    - Finally:</span>
+<span class="sd">                        - has_duplicate_node=False</span>
+<span class="sd">            </span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># check realisation is at least possible:</span>
+        <span class="n">anomaly_degrees</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">deg</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">deg</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="n">anomaly_degrees</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">antimask</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">deg</span> <span class="ow">in</span> <span class="n">anomaly_degrees</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]))</span> <span class="k">if</span> <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">antimask</span><span class="p">]</span>
+            <span class="n">max_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[</span><span class="n">mask</span><span class="p">[</span><span class="n">max_idx</span><span class="p">],</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">deg</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot fit anomaly in global graph&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">antimask</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask</span><span class="p">[</span><span class="n">max_idx</span><span class="p">])</span>
+
+        <span class="n">has_duplicate_node</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">node_selection</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># place anomaly in global graph</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">has_duplicate_node</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">an_node</span><span class="p">,</span> <span class="n">an_degree</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+                <span class="c1"># Get available nodes and pick one at random</span>
+                <span class="n">candidate_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span>  <span class="n">an_degree</span><span class="p">)</span>
+                <span class="n">candidate_node</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">candidate_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+                <span class="c1"># if node already selected, start from scratch</span>
+                <span class="k">if</span> <span class="n">candidate_node</span> <span class="ow">in</span> <span class="n">node_selection</span><span class="p">:</span>
+                    <span class="n">node_selection</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">has_duplicate_node</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">break</span>
+
+                <span class="n">node_selection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate_node</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># when nodes are picked, substract anomaly degrees </span>
+                <span class="n">has_duplicate_node</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="c1"># an_node are numbered from 0 to numberOfAnomaly * m_anomaly </span>
+                <span class="c1"># give same node names in normal graph and anomaly graph</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">an_node</span><span class="p">,</span> <span class="n">an_degree</span><span class="p">),</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">node_selection</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[</span><span class="n">an_node</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">an_node</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[</span><span class="n">an_node</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[</span><span class="n">node_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">an_degree</span>
+
+                <span class="n">last_index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">degrees</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> 
+                          <span class="k">if</span> <span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node_selection</span><span class="p">]</span>
+
+                <span class="c1"># assign node names to rest of degrees</span>
+                <span class="k">for</span> <span class="n">_norm_node</span><span class="p">,</span> <span class="n">degree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">global_degree_list</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span><span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">norm_node</span> <span class="o">=</span> <span class="n">last_index</span> <span class="o">+</span> <span class="n">_norm_node</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[</span><span class="n">norm_node</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">norm_node</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[</span><span class="n">norm_node</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">degree</span></div>
+
+<div class="viewcode-block" id="GraphWithAnomaly.generate_normality"><a class="viewcode-back" href="../../python/genGraph.html#GTgen.genGraph.GraphWithAnomaly.generate_normality">[docs]</a>    <span class="k">def</span> <span class="nf">generate_normality</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Generate &#39;normal&#39; graph using Havel-Hakimi algorithm</span>
+<span class="sd">            and edge swaps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;initiate Havel Hakimi generator&#39;</span><span class="p">)</span> 
+        <span class="n">normalModel</span> <span class="o">=</span> <span class="n">HavelHakimi</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">normal_degree_list</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,:],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">N_swap</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> 
+        <span class="n">normalModel</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+        <span class="c1"># perform edge swap</span>
+        <span class="n">normalModel</span><span class="o">.</span><span class="n">_edge_swap</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span> <span class="o">=</span> <span class="n">normalModel</span><span class="o">.</span><span class="n">graph</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># if verbose, monitor time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">s for python hakimi&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_check_multiple_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; check if Global graph has multiple edges &quot;&quot;&quot;</span>
+        <span class="c1"># to detect multiple edges simply compare edge sets</span>
+        <span class="n">multiple_edges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+              <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> Multiple edges in normal+anomaly graph detected.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                  <span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">multiple_edges</span>
+
+<div class="viewcode-block" id="GraphWithAnomaly.swap_multiedges"><a class="viewcode-back" href="../../python/genGraph.html#GTgen.genGraph.GraphWithAnomaly.swap_multiedges">[docs]</a>    <span class="k">def</span> <span class="nf">swap_multiedges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">multiple_edges</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; If multiple edges are detected between normal graph and anomaly, </span>
+<span class="sd">            target them specifically when switching</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Swapping </span><span class="si">{}</span><span class="s1"> edges by targetting &#39;</span>
+                <span class="s1">&#39;multiple edges specifically&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)))</span>
+        <span class="k">while</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="c1"># pick an edge at random ## TODO not necessary ?</span>
+            <span class="n">edge_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">))</span>
+            <span class="n">multiple_edge</span> <span class="o">=</span> <span class="n">multiple_edges</span><span class="p">[</span><span class="n">edge_index</span><span class="p">]</span>
+
+            <span class="c1"># choose at random which of the normal graph or anomaly to update</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">&gt;=</span><span class="mf">0.5</span><span class="p">:</span> <span class="c1"># TODO remonter proba comme paramètre </span>
+                <span class="n">norm_edge2_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">))</span>
+                <span class="n">norm_edge2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">norm_edge2_idx</span><span class="p">]</span>
+                <span class="n">reverse</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.5</span>
+
+                <span class="c1"># 1/2 chance of reversing _edge2 : equivalent to picking both</span>
+                <span class="c1"># directions at random</span>
+                <span class="n">norm_edge1_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">multiple_edge</span><span class="p">)</span>
+                <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">multiple_edge</span>
+
+                <span class="k">if</span> <span class="n">reverse</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span> <span class="o">=</span> <span class="n">norm_edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">norm_edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">e1_n1</span> <span class="ow">in</span> <span class="n">norm_edge2</span> <span class="ow">or</span> <span class="n">e1_n2</span> <span class="ow">in</span> <span class="n">norm_edge2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># get new edges</span>
+                <span class="n">new_edge1</span> <span class="o">=</span> <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e1_n1</span> <span class="o">&lt;</span> <span class="n">e2_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e1_n1</span><span class="p">)</span>
+                <span class="n">new_edge2</span> <span class="o">=</span> <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e2_n1</span> <span class="o">&lt;</span> <span class="n">e1_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e1_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span>
+
+                <span class="c1"># skip if new edges already exist </span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">new_edge1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span>
+                 <span class="ow">or</span> <span class="n">new_edge2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span>
+                 <span class="ow">or</span> <span class="n">new_edge1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span> 
+                 <span class="ow">or</span> <span class="n">new_edge2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># replace previous edges in set</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">norm_edge1_idx</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">norm_edge2_idx</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge1</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge2</span><span class="p">)</span>
+                
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">norm_edge1_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">norm_edge2_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge2</span>
+
+                    <span class="c1">#multiple_edges = self._check_multiple_edges()</span>
+                    <span class="n">multiple_edges</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">multiple_edge</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">an_edge2_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">))</span>
+                <span class="n">an_edge2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">an_edge2_idx</span><span class="p">]</span>
+                <span class="n">reverse</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mf">0.5</span>
+
+                <span class="c1"># 1/2 chance of reversing _edge2 : equivalent to picking both</span>
+                <span class="c1"># directions at random</span>
+                <span class="n">an_edge1_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">multiple_edge</span><span class="p">)</span>
+                <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">multiple_edge</span>
+
+                <span class="k">if</span> <span class="n">reverse</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span> <span class="o">=</span> <span class="n">an_edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="o">=</span> <span class="n">an_edge2</span> <span class="c1">#self.edges[edge2_idx]</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">e1_n1</span> <span class="ow">in</span> <span class="n">an_edge2</span> <span class="ow">or</span> <span class="n">e1_n2</span> <span class="ow">in</span> <span class="n">an_edge2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># get new edges</span>
+                <span class="n">new_edge1</span> <span class="o">=</span> <span class="p">(</span><span class="n">e1_n1</span><span class="p">,</span> <span class="n">e2_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e1_n1</span> <span class="o">&lt;</span> <span class="n">e2_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e2_n2</span><span class="p">,</span> <span class="n">e1_n1</span><span class="p">)</span>
+                <span class="n">new_edge2</span> <span class="o">=</span> <span class="p">(</span><span class="n">e2_n1</span><span class="p">,</span> <span class="n">e1_n2</span><span class="p">)</span> <span class="k">if</span> <span class="n">e2_n1</span> <span class="o">&lt;</span> <span class="n">e1_n2</span> <span class="k">else</span> <span class="p">(</span><span class="n">e1_n2</span><span class="p">,</span> <span class="n">e2_n1</span><span class="p">)</span>
+
+                <span class="c1"># skip when edge exist </span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">new_edge1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span>
+                 <span class="ow">or</span> <span class="n">new_edge2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">edge_set</span>
+                 <span class="ow">or</span> <span class="n">new_edge1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span>
+                 <span class="ow">or</span> <span class="n">new_edge2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># replace previous edges in set</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">an_edge1_idx</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">an_edge2_idx</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge1</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edge_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_edge2</span><span class="p">)</span>
+                
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">an_edge1_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">an_edge2_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_edge2</span>
+
+                    <span class="c1">#multiple_edges = self._check_multiple_edges()</span>
+                    <span class="n">multiple_edges</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">multiple_edge</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> multiple edges left&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> edges left&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="GraphWithAnomaly.run"><a class="viewcode-back" href="../../python/genGraph.html#GTgen.genGraph.GraphWithAnomaly.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generating anomaly&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_generate_anomaly</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;getting normal graph degree sequence&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_normality_degree_seq</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generating normal graph&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_normality</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checking for multiple edges&#39;</span><span class="p">)</span>
+        <span class="n">multiple_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_multiple_edges</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">swap_multiedges</span><span class="p">(</span><span class="n">multiple_edges</span><span class="p">)</span>
+
+        <span class="c1"># when no multi edges, concatenate graphs</span>
+        <span class="n">global_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span>
+
+        <span class="c1"># add weights</span>
+        <span class="n">global_graph</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span>
+        <span class="n">global_graph</span><span class="o">.</span><span class="n">shuffle_weights</span><span class="p">()</span>
+
+        <span class="c1"># write graph</span>
+        <span class="n">global_graph</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">)</span></div></div>
+       
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, ComplexNetworks.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
