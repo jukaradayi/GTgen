@@ -37,10 +37,9 @@ class TimeserieWithAnomaly():
             logger,
             plot=False):
         #self.numberOfAnomaly = numberofAnomaly
-
         self.value_list = value_list
         self.anomaly_type = anomaly_type
-        self.anomaly_duration = anomaly_duration # define as ratio first...
+        self.anomaly_duration = int(len(value_list) * self.anomaly_duration)
         self.anomaly_index = None
 
         self.timeserie = Timeserie(serie=np.array(value_list), out_path=output)
@@ -83,7 +82,7 @@ class TimeserieWithAnomaly():
         """
 
         # anomaly index is duration of peak in samples
-        self.anomaly_index = self.timeserie.duration - self.anomaly_duration
+        self.anomaly_index = int(self.timeserie.duration - self.anomaly_duration)
         # get peak
         self.timeserie.shuffle_timeserie(index_low = self.anomaly_index, 
                                          index_high = None)
@@ -97,6 +96,7 @@ class TimeserieWithAnomaly():
                                        self.timeserie.serie[self.anomaly_index:], 
                                        self.timeserie.serie[rdm_index:]])
         self.timeserie.serie = global_serie
+        return rdm_index
 
     def run(self):
         self.logger.info('generating')
