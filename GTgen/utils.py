@@ -81,7 +81,7 @@ def _read_degrees(dataset):
         for line in data:
             vertex, degree = line.strip().split(' ')
             vertex2vidx[idx] = vertex
-            idx += 1
             degree_list.append((idx, int(degree)))
+            idx += 1
     return vertex2vidx, degree_list
 

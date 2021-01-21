@@ -32,7 +32,8 @@ class AbstractGraphGenerator():
     def _edge_swap(self): 
         """ Do N_swap edge swap to get more random graph"""
 
-        assert self.N_swap is not None, ("attempting to swap edges but no swap number defined"
+        assert self.N_swap is not None, ("attempting to swap edges but no "
+                "swap number defined")
 
         # first shuffle edges, than swap two by two
         n_swap = 0
@@ -79,7 +80,7 @@ class AbstractGraphGenerator():
 
             # skip when edge exist 
             if (new_edge1 in self.graph.edge_set 
-             or new_edge2 in self.graph.edge_set:
+             or new_edge2 in self.graph.edge_set):
                 _n_attempts += 1
                 continue
             else:
@@ -155,7 +156,6 @@ class HavelHakimi(AbstractGraphGenerator):
         self.logger = logger
         if seed is not None:
             np.random.seed(seed)
-
         if len(sequence.shape) > 1 and sequence.shape[1] > 1:
             self.sequence = sequence
         else:

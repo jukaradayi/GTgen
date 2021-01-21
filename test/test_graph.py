@@ -2,7 +2,7 @@ from GTgen.graph import *
 
 def test_add():
     G = Graph(edges = [], nodes=set(),
-              is_sorted= False, degrees=None,
+              degrees=None,
               logger = None)
 
     # add properly formated edge
@@ -31,7 +31,7 @@ def test_add():
 
 def test_numbers():
     G = Graph(edges = [], nodes=set(),
-              is_sorted= False, degrees=None,
+              degrees=None,
               logger = None)
     assert G.numberOfNodes == 0
     assert G.numberOfEdges == 0
@@ -47,7 +47,7 @@ def test_numbers():
 
 def test_swapEdge():
     G = Graph(edges = [(0,1), (1,2), (2,3)], nodes={0,1,2,3}, edge_set = None,
-              is_sorted= False, degrees=None,
+              degrees=None,
               logger = None)
 
     # valid swap
@@ -66,7 +66,7 @@ def test_swapEdge():
 
 def test_edge_set():
     edge_list = [(0, 1), (0, 2), (0, 5), (0, 6), (0, 7), (1, 2), (1, 3), (1, 4), (2, 5), (3, 4), (6, 7)]
-    G = Graph(edges = edge_list, nodes = {0,1,2,3,4,5,6,7}, edge_set = None, is_sorted = False, degrees = None, logger = None)
+    G = Graph(edges = edge_list, nodes = {0,1,2,3,4,5,6,7}, edge_set = None, degrees = None, logger = None)
     assert sorted(list(G.edge_set)) == sorted(G.edges)   
     N_swap = 10 * len(edge_list)
 

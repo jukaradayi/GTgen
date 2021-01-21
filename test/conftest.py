@@ -3,7 +3,7 @@ import pickle
 import pytest
 import logging
 
-from GTgen.utils import *
+from GTgen.utils import _read_degrees
 
 @pytest.fixture(scope='session')
 def data_path():
@@ -17,8 +17,9 @@ def NKedges(data_path):
 
 @pytest.fixture(scope='session')
 def taxi_seq(data_path):
-    _, degree_list = read_degrees(os.path.join(data_path, 'taxi_deg_seq.txt'))
-    return [deg for _, deg in degree_list]
+    _, degree_list = _read_degrees(os.path.join(data_path, 'taxi_deg_seq.txt'))
+    #return [deg for _, deg in degree_list]
+    return degree_list
 
 @pytest.fixture(scope='session')
 def logger():
