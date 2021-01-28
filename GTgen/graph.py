@@ -74,12 +74,12 @@ class Graph():
             for edge in self.edges:
                 fout.write('{}-{}'.format(edge[0], edge[1]))
 
-    def _write_weightedGraph(self):
+    def _write_weightedGraph(self, output):
         assert len(self.edges) == len(self.weight), ("Graph has {} weights"
               "and {} edges, should have the same number".format(
                   len(self.weight), len(self.edges)))
-        with open(open, 'w') as fout:
-            for edge, weight in zip(self.edges, self.weight):
+        with open(output, 'w') as fout:
+            for edge, weight in sorted(zip(self.edges, self.weight)):
                 fout.write('{}-{} {}\n'.format(edge[0], edge[1], weight))
 
     def write_graph(self, output):

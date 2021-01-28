@@ -101,9 +101,10 @@ class GraphWithAnomaly():
         # generate each anomaly using GNM model, nodes are integers in
         # increasing order
         for an_i in range(self.numberOfAnomaly):
-            anomalyModel = GNM(self.n_anomaly, self.m_anomaly,
-                    set(range(self.n_anomaly*an_i, self.n_anomaly*(an_i+1))),
-                    self.logger)
+            anomalyModel = GNM(self.n_anomaly, self.m_anomaly, seed=None,
+                    nodes=set(range(self.n_anomaly*an_i, self.n_anomaly*(an_i+1))),
+                    
+                    logger=self.logger)
             anomalyModel.run()
             self.G_anomaly += anomalyModel.graph
 
@@ -233,6 +234,52 @@ class GraphWithAnomaly():
                   len(multiple_edges)))
         return multiple_edges
 
+    @staticmethod
+    def _swap_edge(graph, other_graph, edge1):
+        edge2_idx = np.random.choice(len(graph.edges))
+        edge2 = graph.edges[edge2_idx]
+        reverse = random.uniform(0,1) >= 0.5
+
+        # 1/2 chance of reversing _edge2 : equivalent to picking both
+        # directions at random
+        edge1_idx = graph.edges.index(edge1)
+        (e1_n1, e1_n2) = edge1
+
+        if reverse >= 0.5:
+            (e2_n2, e2_n1) = edge2 #self.edges[edge2_idx]
+        else:
+            (e2_n1, e2_n2) = edge2 #self.edges[edge2_idx]
+        if (e1_n1 in edge2 or e1_n2 in edge2):
+            return False
+            # continue
+
+        # get new edges
+        new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
+        new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
+
+        # skip if new edges already exist 
+        if (new_edge1 in graph.edge_set
+         or new_edge2 in graph.edge_set
+         or new_edge1 in other_graph.edge_set 
+         or new_edge2 in other_graph.edge_set):
+            return False
+            #continue
+        else:
+            # replace previous edges in set
+            graph.edge_set.remove(
+                    graph.edges[edge1_idx])
+            graph.edge_set.remove(
+                    graph.edges[edge2_idx])
+            graph.edge_set.add(new_edge1)
+            graph.edge_set.add(new_edge2)
+        
+            graph.edges[edge1_idx] = new_edge1
+            graph.edges[edge2_idx] = new_edge2
+
+            #multiple_edges = self._check_multiple_edges()
+            return True
+            #multiple_edges.remove(multiple_edge)
+
     def swap_multiedges(self, multiple_edges):
         """ If multiple edges are detected between normal graph and anomaly, 
             target them specifically when switching
@@ -247,91 +294,157 @@ class GraphWithAnomaly():
             # choose at random which of the normal graph or anomaly to update
             p = random.uniform(0, 1)
             if p>=0.5: # TODO remonter proba comme paramètre 
-                norm_edge2_idx = np.random.choice(len(self.G_normal.edges))
-                norm_edge2 = self.G_normal.edges[norm_edge2_idx]
-                reverse = random.uniform(0,1) >= 0.5
-
-                # 1/2 chance of reversing _edge2 : equivalent to picking both
-                # directions at random
-                norm_edge1_idx = self.G_normal.edges.index(multiple_edge)
-                (e1_n1, e1_n2) = multiple_edge
-
-                if reverse >= 0.5:
-                    (e2_n2, e2_n1) = norm_edge2 #self.edges[edge2_idx]
-                else:
-                    (e2_n1, e2_n2) = norm_edge2 #self.edges[edge2_idx]
-                if (e1_n1 in norm_edge2 or e1_n2 in norm_edge2):
-                    continue
-
-                # get new edges
-                new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
-                new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
-
-                # skip if new edges already exist 
-                if (new_edge1 in self.G_normal.edge_set
-                 or new_edge2 in self.G_normal.edge_set
-                 or new_edge1 in self.G_anomaly.edge_set 
-                 or new_edge2 in self.G_anomaly.edge_set):
-                    continue
-                else:
-                    # replace previous edges in set
-                    self.G_normal.edge_set.remove(
-                            self.G_normal.edges[norm_edge1_idx])
-                    self.G_normal.edge_set.remove(
-                            self.G_normal.edges[norm_edge2_idx])
-                    self.G_normal.edge_set.add(new_edge1)
-                    self.G_normal.edge_set.add(new_edge2)
                 
-                    self.G_normal.edges[norm_edge1_idx] = new_edge1
-                    self.G_normal.edges[norm_edge2_idx] = new_edge2
-
-                    #multiple_edges = self._check_multiple_edges()
+                # swap in normal graph
+                accepted = self._swap_edge(self.G_normal, self.G_anomaly, multiple_edge)
+                if accepted:
                     multiple_edges.remove(multiple_edge)
+                else:
+                    continue
             else:
-                an_edge2_idx = np.random.choice(len(self.G_anomaly.edges))
-                an_edge2 = self.G_anomaly.edges[an_edge2_idx]
-                reverse = random.uniform(0,1) >= 0.5
-
-                # 1/2 chance of reversing _edge2 : equivalent to picking both
-                # directions at random
-                an_edge1_idx = self.G_anomaly.edges.index(multiple_edge)
-                (e1_n1, e1_n2) = multiple_edge
-
-                if reverse >= 0.5:
-                    (e2_n2, e2_n1) = an_edge2 #self.edges[edge2_idx]
-                else:
-                    (e2_n1, e2_n2) = an_edge2 #self.edges[edge2_idx]
-                if (e1_n1 in an_edge2 or e1_n2 in an_edge2):
-                    continue
-
-                # get new edges
-                new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
-                new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
-
-                # skip when edge exist 
-                if (new_edge1 in self.G_normal.edge_set
-                 or new_edge2 in self.G_normal.edge_set
-                 or new_edge1 in self.G_anomaly.edge_set
-                 or new_edge2 in self.G_anomaly.edge_set):
-                    continue
-                else:
-                    # replace previous edges in set
-                    self.G_anomaly.edge_set.remove(
-                            self.G_anomaly.edges[an_edge1_idx])
-                    self.G_anomaly.edge_set.remove(
-                            self.G_anomaly.edges[an_edge2_idx])
-                    self.G_anomaly.edge_set.add(new_edge1)
-                    self.G_anomaly.edge_set.add(new_edge2)
-                
-                    self.G_anomaly.edges[an_edge1_idx] = new_edge1
-                    self.G_anomaly.edges[an_edge2_idx] = new_edge2
-
-                    #multiple_edges = self._check_multiple_edges()
+                # Swap in anomaly graph
+                accepted = self._swap_edge(self.G_anomaly, self.G_normal, multiple_edge)
+                if accepted:
                     multiple_edges.remove(multiple_edge)
+                else:
+                    continue
+            #self.logger.info('{} edges left'.format(len(multiple_edges)))
+        self.logger.info('finished targetting multiple edges')
 
-                self.logger.debug('{} multiple edges left'.format(
-                    len(multiple_edges)))
-            self.logger.info('{} edges left'.format(len(multiple_edges)))
+    def global_swap(self, N_swap):
+        """ After multiple edges are removed, perform random swap without
+            creating new multiple edges
+        """
+        self.logger.info('Swapping {} edges to get uniformly random pick'.format(N_swap))
+
+        n_swap = 0
+        while (n_swap < N_swap):
+            # pick an edge at random ## TODO not necessary ?
+            #edge_index = np.random.randint(low=0, high=len(multiple_edges))
+            #multiple_edge = multiple_edges[edge_index]
+
+            # choose at random which of the normal graph or anomaly to update
+            p = random.uniform(0, 1)
+            if p>=0.5: # TODO remonter proba comme paramètre
+                edge1_idx = np.random.choice(len(self.G_normal.edges))
+                edge1 = self.G_normal.edges[edge2_idx]
+               
+                # swap in normal graph
+                accepted = self._swap_edge(self.G_normal, self.G_anomaly, edge1)
+                if accepted:
+                    n_swap += 1
+                else:
+                    continue
+            else:
+                edge2_idx = np.random.choice(len(self.G_anomaly.edges))
+                edge2 = self.G_anomaly.edges[edge2_idx]
+
+                # Swap in anomaly graph
+                accepted = self._swap_edge(self.G_anomaly, self.G_normal, edge2)
+                if accepted:
+                    n_swap += 1
+                else:
+                    continue
+
+    #def swap_multiedges(self, multiple_edges):
+    #    """ If multiple edges are detected between normal graph and anomaly, 
+    #        target them specifically when switching
+    #    """
+    #    self.logger.info('Swapping {} edges by targetting '
+    #            'multiple edges specifically'.format(len(multiple_edges)))
+    #    while (len(multiple_edges) > 0):
+    #        # pick an edge at random ## TODO not necessary ?
+    #        edge_index = np.random.randint(low=0, high=len(multiple_edges))
+    #        multiple_edge = multiple_edges[edge_index]
+
+    #        # choose at random which of the normal graph or anomaly to update
+    #        p = random.uniform(0, 1)
+    #        if p>=0.5: # TODO remonter proba comme paramètre 
+    #            norm_edge2_idx = np.random.choice(len(self.G_normal.edges))
+    #            norm_edge2 = self.G_normal.edges[norm_edge2_idx]
+    #            reverse = random.uniform(0,1) >= 0.5
+
+    #            # 1/2 chance of reversing _edge2 : equivalent to picking both
+    #            # directions at random
+    #            norm_edge1_idx = self.G_normal.edges.index(multiple_edge)
+    #            (e1_n1, e1_n2) = multiple_edge
+
+    #            if reverse >= 0.5:
+    #                (e2_n2, e2_n1) = norm_edge2 #self.edges[edge2_idx]
+    #            else:
+    #                (e2_n1, e2_n2) = norm_edge2 #self.edges[edge2_idx]
+    #            if (e1_n1 in norm_edge2 or e1_n2 in norm_edge2):
+    #                continue
+
+    #            # get new edges
+    #            new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
+    #            new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
+
+    #            # skip if new edges already exist 
+    #            if (new_edge1 in self.G_normal.edge_set
+    #             or new_edge2 in self.G_normal.edge_set
+    #             or new_edge1 in self.G_anomaly.edge_set 
+    #             or new_edge2 in self.G_anomaly.edge_set):
+    #                continue
+    #            else:
+    #                # replace previous edges in set
+    #                self.G_normal.edge_set.remove(
+    #                        self.G_normal.edges[norm_edge1_idx])
+    #                self.G_normal.edge_set.remove(
+    #                        self.G_normal.edges[norm_edge2_idx])
+    #                self.G_normal.edge_set.add(new_edge1)
+    #                self.G_normal.edge_set.add(new_edge2)
+    #            
+    #                self.G_normal.edges[norm_edge1_idx] = new_edge1
+    #                self.G_normal.edges[norm_edge2_idx] = new_edge2
+
+    #                #multiple_edges = self._check_multiple_edges()
+    #                multiple_edges.remove(multiple_edge)
+    #        else:
+    #            an_edge2_idx = np.random.choice(len(self.G_anomaly.edges))
+    #            an_edge2 = self.G_anomaly.edges[an_edge2_idx]
+    #            reverse = random.uniform(0,1) >= 0.5
+
+    #            # 1/2 chance of reversing _edge2 : equivalent to picking both
+    #            # directions at random
+    #            an_edge1_idx = self.G_anomaly.edges.index(multiple_edge)
+    #            (e1_n1, e1_n2) = multiple_edge
+
+    #            if reverse >= 0.5:
+    #                (e2_n2, e2_n1) = an_edge2 #self.edges[edge2_idx]
+    #            else:
+    #                (e2_n1, e2_n2) = an_edge2 #self.edges[edge2_idx]
+    #            if (e1_n1 in an_edge2 or e1_n2 in an_edge2):
+    #                continue
+
+    #            # get new edges
+    #            new_edge1 = (e1_n1, e2_n2) if e1_n1 < e2_n2 else (e2_n2, e1_n1)
+    #            new_edge2 = (e2_n1, e1_n2) if e2_n1 < e1_n2 else (e1_n2, e2_n1)
+
+    #            # skip when edge exist 
+    #            if (new_edge1 in self.G_normal.edge_set
+    #             or new_edge2 in self.G_normal.edge_set
+    #             or new_edge1 in self.G_anomaly.edge_set
+    #             or new_edge2 in self.G_anomaly.edge_set):
+    #                continue
+    #            else:
+    #                # replace previous edges in set
+    #                self.G_anomaly.edge_set.remove(
+    #                        self.G_anomaly.edges[an_edge1_idx])
+    #                self.G_anomaly.edge_set.remove(
+    #                        self.G_anomaly.edges[an_edge2_idx])
+    #                self.G_anomaly.edge_set.add(new_edge1)
+    #                self.G_anomaly.edge_set.add(new_edge2)
+    #            
+    #                self.G_anomaly.edges[an_edge1_idx] = new_edge1
+    #                self.G_anomaly.edges[an_edge2_idx] = new_edge2
+
+    #                #multiple_edges = self._check_multiple_edges()
+    #                multiple_edges.remove(multiple_edge)
+
+    #            self.logger.debug('{} multiple edges left'.format(
+    #                len(multiple_edges)))
+    #        self.logger.info('{} edges left'.format(len(multiple_edges)))
 
     def run(self):
         self.logger.info('generating anomaly')
@@ -343,7 +456,12 @@ class GraphWithAnomaly():
         self.logger.info('checking for multiple edges')
         multiple_edges = self._check_multiple_edges()
         if len(multiple_edges) > 0:
+            #print(f'{len(multiple_edges)} edges to swap')
+            N_swap = 10 * len(multiple_edges)
             self.swap_multiedges(multiple_edges)
+            self.global_swap(N_swap)
+            # when all multiple edges have been taken cared of
+            # perform swaps again to get uniformly random ...
 
         # when no multi edges, concatenate graphs
         global_graph = self.G_anomaly + self.G_normal

@@ -35,10 +35,10 @@ def main():
         '-o', '--output', default='./',
         help='Folder in which output will be written')
     parser.add_argument(
-        '--seed', default=None,
+        '--seed', default=None, type=int,
         help='fix random seed')
     parser.add_argument(
-        '-v', '--verbose', default=False,
+        '-v', '--verbose', default=False, action='store_true',
         help='Be more verbose')
     args = parser.parse_args()
 
@@ -68,6 +68,7 @@ def main():
         seed = np.random.choice(10**6)
     else:
         seed = args.seed
+    logger.info('seed fixed to {}'.format(seed))
     np.random.seed(seed)
 
     # manage output directory
