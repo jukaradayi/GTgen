@@ -48,7 +48,8 @@ class GraphWithAnomaly():
             numberOfAnomaly,
             n_anomaly,
             m_anomaly, 
-            N_swap,
+            N_swap1,
+            N_swap2,
             weight,
             logger,
             output,
@@ -75,7 +76,9 @@ class GraphWithAnomaly():
         # normal graph
         self.G_normal = None
         N_edges = int(sum([deg for _,deg in degree_list])/2)
-        self.N_swap = int(N_swap * N_edges)
+        self.N_swap1 = int(N_swap1 * N_edges)
+        self.N_swap2 = N_swap2
+
 
         # output
         self.output = output
@@ -209,7 +212,7 @@ class GraphWithAnomaly():
         self.logger.info('initiate Havel Hakimi generator') 
         normalModel = HavelHakimi(
                 self.normal_degree_list[self.normal_degree_list[:,1]>0,:],
-                self.N_swap, self.logger)
+                self.N_swap1, self.logger)
 
         t0 = time.time() 
         normalModel.run()
@@ -327,7 +330,7 @@ class GraphWithAnomaly():
             p = random.uniform(0, 1)
             if p>=0.5: # TODO remonter proba comme paramètre
                 edge1_idx = np.random.choice(len(self.G_normal.edges))
-                edge1 = self.G_normal.edges[edge2_idx]
+                edge1 = self.G_normal.edges[edge1_idx]
                
                 # swap in normal graph
                 accepted = self._swap_edge(self.G_normal, self.G_anomaly, edge1)
@@ -457,9 +460,9 @@ class GraphWithAnomaly():
         multiple_edges = self._check_multiple_edges()
         if len(multiple_edges) > 0:
             #print(f'{len(multiple_edges)} edges to swap')
-            N_swap = 10 * len(multiple_edges)
+            N_swap2 = self.N_swap2 * len(multiple_edges)
             self.swap_multiedges(multiple_edges)
-            self.global_swap(N_swap)
+            self.global_swap(N_swap2)
             # when all multiple edges have been taken cared of
             # perform swaps again to get uniformly random ...
 

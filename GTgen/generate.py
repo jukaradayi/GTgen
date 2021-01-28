@@ -85,7 +85,8 @@ def main():
                 config['Graph']['params']['numberOfAnomalies'],
                 config['Graph']['params']['n_anomaly'],
                 config['Graph']['params']['m_anomaly'],
-                config['Graph']['params']['N_swap'],
+                config['Graph']['params']['N_swap1'],
+                config['Graph']['params']['N_swap2'], ## TODO DEFINE N_SWAP2 
                 config['Graph']['params']['weight'],
                 logger,
                 graph_output,
