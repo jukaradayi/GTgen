@@ -260,6 +260,9 @@ class HavelHakimi(AbstractGraphGenerator):
 
         counter_edge = Counter(self.graph.edges)
         multiple = [edge for edge in self.graph.edges if counter_edge[edge] >1]
+        # initialize weights
+        self.graph.init_weights()
+
 
 class GNM(AbstractGraphGenerator):
     """ Reimplementation of NetworkX GNM model.
@@ -322,6 +325,10 @@ class GNM(AbstractGraphGenerator):
         if len(nodes) > 1:
             edges = itertools.combinations(nodes, 2)
             G.addEdgesFrom(edges)
+
+        # initialize weights
+        G.init_weights()
+
         return G
 
     def run(self):
@@ -355,5 +362,8 @@ class GNM(AbstractGraphGenerator):
             else:
                 self.graph.addEdge(edge)
                 edge_count = edge_count + 1
+
+        # initialize weights
+        self.graph.init_weights()
         return
 

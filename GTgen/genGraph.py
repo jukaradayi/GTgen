@@ -241,7 +241,7 @@ class GraphWithAnomaly():
     def _swap_edge(graph, other_graph, edge1):
         edge2_idx = np.random.choice(len(graph.edges))
         edge2 = graph.edges[edge2_idx]
-        reverse = random.uniform(0,1) >= 0.5
+        reverse = np.random.uniform(0,1) >= 0.5 # TODO USE NP.RANDOM
 
         # 1/2 chance of reversing _edge2 : equivalent to picking both
         # directions at random
@@ -295,7 +295,7 @@ class GraphWithAnomaly():
             multiple_edge = multiple_edges[edge_index]
 
             # choose at random which of the normal graph or anomaly to update
-            p = random.uniform(0, 1)
+            p = np.random.uniform(0, 1)
             if p>=0.5: # TODO remonter proba comme paramètre 
                 
                 # swap in normal graph
@@ -327,7 +327,7 @@ class GraphWithAnomaly():
             #multiple_edge = multiple_edges[edge_index]
 
             # choose at random which of the normal graph or anomaly to update
-            p = random.uniform(0, 1)
+            p = np.random.uniform(0, 1)
             if p>=0.5: # TODO remonter proba comme paramètre
                 edge1_idx = np.random.choice(len(self.G_normal.edges))
                 edge1 = self.G_normal.edges[edge1_idx]
@@ -361,11 +361,11 @@ class GraphWithAnomaly():
     #        multiple_edge = multiple_edges[edge_index]
 
     #        # choose at random which of the normal graph or anomaly to update
-    #        p = random.uniform(0, 1)
+    #        p = np.random.uniform(0, 1)
     #        if p>=0.5: # TODO remonter proba comme paramètre 
     #            norm_edge2_idx = np.random.choice(len(self.G_normal.edges))
     #            norm_edge2 = self.G_normal.edges[norm_edge2_idx]
-    #            reverse = random.uniform(0,1) >= 0.5
+    #            reverse = np.random.uniform(0,1) >= 0.5
 
     #            # 1/2 chance of reversing _edge2 : equivalent to picking both
     #            # directions at random
@@ -406,7 +406,7 @@ class GraphWithAnomaly():
     #        else:
     #            an_edge2_idx = np.random.choice(len(self.G_anomaly.edges))
     #            an_edge2 = self.G_anomaly.edges[an_edge2_idx]
-    #            reverse = random.uniform(0,1) >= 0.5
+    #            reverse = np.random.uniform(0,1) >= 0.5
 
     #            # 1/2 chance of reversing _edge2 : equivalent to picking both
     #            # directions at random
@@ -466,13 +466,21 @@ class GraphWithAnomaly():
             # when all multiple edges have been taken cared of
             # perform swaps again to get uniformly random ...
 
-        # when no multi edges, concatenate graphs
-        global_graph = self.G_anomaly + self.G_normal
+        # write normal graph and anomaly separately
+        # TODO
+        np.random.shuffle(self.weight)
+        self.G_anomaly.weight = self.weight[:G_anomaly.numberOfEdges]
+        self.G_normal.weight = self.weight[G_anomaly.numberOfEdges:G_normal.numberOfEdges]
 
-        # add weights
-        global_graph.weight = self.weight
-        global_graph.shuffle_weights()
+        self.G_normal.write_graph(os.path.join(self.output, 'normal_graph.txt'))
+        self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_graph.txt'))
+        ## when no multi edges, concatenate graphs
+        #global_graph = self.G_anomaly + self.G_normal
 
-        # write graph
-        global_graph.write_graph(self.output)
+        ## add weights
+        #global_graph.weight = self.weight
+        #global_graph.shuffle_weights()
+
+        ## write graph
+        #global_graph.write_graph(self.output)
        

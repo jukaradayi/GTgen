@@ -78,7 +78,7 @@ def main():
 
     # generate graph
     if config['Graph']['generate']:
-        graph_output = os.path.join(args.output, 'graph.txt')
+        #graph_output = os.path.join(args.output, 'graph.txt')
         logger.info('generating graph')
         generator = GraphWithAnomaly(
                 config['Graph']['params']['degree'],
@@ -89,7 +89,8 @@ def main():
                 config['Graph']['params']['N_swap2'], ## TODO DEFINE N_SWAP2 
                 config['Graph']['params']['weight'],
                 logger,
-                graph_output,
+                #graph_output,
+                args.output,
                 seed)
         generator.run()
 
