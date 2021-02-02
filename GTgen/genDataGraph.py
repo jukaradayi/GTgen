@@ -16,6 +16,8 @@
     and `G_an_i` to get rid of multiple edges (to get simple graph)
 """
 
+import os
+import ipdb
 import time
 import random
 import numpy as np
@@ -468,9 +470,10 @@ class GraphWithAnomaly():
 
         # write normal graph and anomaly separately
         # TODO
+        #ipdb.set_trace()
         np.random.shuffle(self.weight)
-        self.G_anomaly.weight = self.weight[:G_anomaly.numberOfEdges]
-        self.G_normal.weight = self.weight[G_anomaly.numberOfEdges:G_normal.numberOfEdges]
+        self.G_anomaly.weight = self.weight[:self.G_anomaly.numberOfEdges]
+        self.G_normal.weight = self.weight[self.G_anomaly.numberOfEdges:]
 
         self.G_normal.write_graph(os.path.join(self.output, 'normal_graph.txt'))
         self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_graph.txt'))

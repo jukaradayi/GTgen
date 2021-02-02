@@ -1,7 +1,7 @@
 """
-    Generate weighted graph with "graph anomaly" and "link stream anomaly".
+    Generate weighted graph G_n with "graph anomaly" G_gan and "link stream anomaly" G_san.
     A "graph anomaly" is an irregularity in the graph that only occurs in the 
-    graph, a "link stream anomaly" is an inrregularity in the graph where the
+    graph, a "link stream anomaly" is an irregularity in the graph where the
     weighted edges involved are also involved in a link stream anomaly (i.e.
     occur at the time where a timeserie anomaly occurs).
 
@@ -14,8 +14,9 @@
 
 import time
 import numpy as np
-from graph import *
-from graphModels import *
+from GTgen.graph import *
+from GTgen.graphModels import *
+
 class ErdosRenyiWithAnomaly():
     """
         Attributes:

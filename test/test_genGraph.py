@@ -1,4 +1,4 @@
-from GTgen.genGraph import *
+from GTgen.genDataGraph import *
 from GTgen.graphModels import *
 from GTgen.graph import * 
 

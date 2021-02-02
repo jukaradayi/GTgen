@@ -6,7 +6,7 @@ import logging
 import argparse
 import numpy as np
 
-from GTgen.genGraph import *
+from GTgen.genDataGraph import *
 from GTgen.genTimeserie import *
 from GTgen.utils import *
 

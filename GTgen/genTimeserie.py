@@ -60,69 +60,106 @@ class TimeserieWithAnomaly():
         self.anomaly_index = None
 
         self.timeserie = Timeserie(serie=np.array(value_list), out_path=output)
+        self.an_timeserie = Timeserie(serie=np.zeros(self.timeserie.serie.shape), out_path=output)
 
         # sort timeserie
         self.timeserie.serie = self.timeserie.sorted_timeserie
         self.logger = logger
         self.output = output
 
-    def _generate_regimeShift(self):
-        """ When anomaly type is regimeShift, take the value_list sorted, 
-        use the last anomaly_duration * len(value_list) as the anomaly,
-        shuffle it, and  use the first 
-        len(value_list) - anomaly_duration * len(value_list) as the 'normal'
-        timeserie, and shuffle it independently.
-        Then the output timeserie is the concatenation of first the 'normal'
-        timeserie then the 'anomaly'.
+    def _generate_anomaly(self):
+        """ To generate an anomaly, take the value_list sorted, 
+        pick random values for anomaly serie with the last 
+        anomaly_duration * len(value_list) as upper bound, and substract these
+        values to the normal serie.
         """
 
         # anomaly_duration is a ratio
         self.anomaly_index = self.timeserie.duration - self.anomaly_duration
-        # generate regime shift by shuffling highest values
-        self.timeserie.shuffle_timeserie(
-                index_low = self.anomaly_index, index_high = None)
+        anomaly_indexes = list(range(self.anomaly_index, self.timeserie.duration))
+
+        # randomly pick values for anomaly
+        for value_index in anomaly_indexes:
+            an_value = np.random.choice(self.timeserie.serie[value_index])
+            self.an_timeserie.serie[value_index] = an_value
+            self.timeserie.serie[value_index] -= an_value
+
         # shuffle remaining for "normality"
         self.timeserie.shuffle_timeserie(
                 index_low = 0, index_high = self.anomaly_index)
 
+        # generate regime shift by shuffling highest values
+        np.random.shuffle(anomaly_indexes)
+        self.timeserie.serie[self.anomaly_index:] = self.timeserie.serie[anomaly_indexes]
+        self.an_timeserie.serie[self.anomaly_index:] = self.an_timeserie.serie[anomaly_indexes]
+
+        #self.timeserie.shuffle_timeserie(
+        #        index_low = self.anomaly_index, index_high = None)
+
     def _generate_peak(self):
-        """ When anomaly type is peak, take the value_list sorted, 
-        use the last anomaly_duration * len(value_list) as the anomaly t_an,
-        shuffle it, and  use the first 
-        len(value_list) - anomaly_duration * len(value_list) as the 'normal'
-        t_n timeserie, and shuffle it independently.
-        Then pick a random index idx in the normal graph to place the peak.
-        The output timeserie is then 
-          t_output = t_n[0:idx] + t_an + t[idx:]
-        where + designates the concatenation operator for lists.
+        """ When anomaly type is 'peak', place anomaly at randomly picked
+            index in timeserie
         """
-        # anomaly index is duration of peak in samples
-        self.anomaly_index = int(self.timeserie.duration - self.anomaly_duration)
-
-        # get peak
-        self.timeserie.shuffle_timeserie(index_low = self.anomaly_index, 
-                                         index_high = None)
-
-        # get normal
-        self.timeserie.shuffle_timeserie(index_low = 0,
-
-                                         index_high = self.anomaly_index)
         # put peak random place in timeserie, random index is at most equal to
         # anomaly index. 
         rdm_index = np.random.choice(self.anomaly_index)
-        self.logger.info('rdm index {}'.format(rdm_index))
-        global_serie = np.concatenate([self.timeserie.serie[:rdm_index], 
+        self.logger.debug('peak anomaly index {}'.format(rdm_index))
+        normal_serie = np.concatenate([self.timeserie.serie[:rdm_index], 
                                        self.timeserie.serie[self.anomaly_index:], 
                                        self.timeserie.serie[rdm_index:self.anomaly_index]])
-        self.timeserie.serie = global_serie
+        an_serie = np.concatenate([self.an_timeserie.serie[:rdm_index], 
+                                       self.an_timeserie.serie[self.anomaly_index:], 
+                                       self.an_timeserie.serie[rdm_index:self.anomaly_index]])
+
+        self.timeserie.serie = normal_serie
+        self.an_timeserie.serie = an_serie
+
         return rdm_index
+
+        #""" When anomaly type is peak, take the value_list sorted, 
+        #use the last anomaly_duration * len(value_list) as the anomaly t_an,
+        #shuffle it, and  use the first 
+        #len(value_list) - anomaly_duration * len(value_list) as the 'normal'
+        #t_n timeserie, and shuffle it independently.
+        #Then pick a random index idx in the normal graph to place the peak.
+        #The output timeserie is then 
+        #  t_output = t_n[0:idx] + t_an + t[idx:]
+        #where + designates the concatenation operator for lists.
+        #"""
+        ## anomaly index is duration of peak in samples
+        #self.anomaly_index = int(self.timeserie.duration - self.anomaly_duration)
+
+        ## randomly pick values for anomaly
+        #for value_index in anomaly_indexes:
+        #    an_value = np.random.choice(self.timeserie.serie[value])
+        #    self.an_timeserie.serie[value_index] = an_value
+        #    self.timeserie.serie[value_index] -= an_value
+
+        ## get normal
+        #self.timeserie.shuffle_timeserie(index_low = 0,
+        #                                 index_high = self.anomaly_index)
+
+        ## get peak
+        #self.timeserie.shuffle_timeserie(index_low = self.anomaly_index, 
+        #                                 index_high = None)
+
+        ## put peak random place in timeserie, random index is at most equal to
+        ## anomaly index. 
+        #rdm_index = np.random.choice(self.anomaly_index)
+        #self.logger.info('rdm index {}'.format(rdm_index))
+        #global_serie = np.concatenate([self.timeserie.serie[:rdm_index], 
+        #                               self.timeserie.serie[self.anomaly_index:], 
+        #                               self.timeserie.serie[rdm_index:self.anomaly_index]])
+        #self.timeserie.serie = global_serie
+        #return rdm_index
 
     def run(self):
         self.logger.info('generating')
-        if self.anomaly_type == "regimeShift":
-            # generate anomaly
-            self._generate_regimeShift()
-        elif self.anomaly_type == "peak":
+        self._generate_anomaly()
+        #if self.anomaly_type == "regimeShift":
+        #    # generate anomaly
+        #    self._generate_regimeShift()
+        if self.anomaly_type == "peak":
             self._generate_peak()
         if self.plot:
             self.timeserie.plot()
