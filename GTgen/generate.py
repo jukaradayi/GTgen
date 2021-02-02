@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 
 from GTgen.genDataGraph import *
+from GTgen.genModelGraph import *
 from GTgen.genTimeserie import *
 from GTgen.utils import *
 
@@ -77,21 +78,38 @@ def main():
         os.makedirs(args.output)
 
     # generate graph
-    if config['Graph']['generate']:
+    #if config['Graph']['generate']:
+    if config['Graph']['generate_data']:
         #graph_output = os.path.join(args.output, 'graph.txt')
         logger.info('generating graph')
-        generator = GraphWithAnomaly(
-                config['Graph']['params']['degree'],
-                config['Graph']['params']['numberOfAnomalies'],
-                config['Graph']['params']['n_anomaly'],
-                config['Graph']['params']['m_anomaly'],
-                config['Graph']['params']['N_swap1'],
-                config['Graph']['params']['N_swap2'], ## TODO DEFINE N_SWAP2 
-                config['Graph']['params']['weight'],
+        generator = DataGraph(
+                config['Graph']['data_params']['degree'],
+                config['Graph']['data_params']['numberOfAnomalies'],
+                config['Graph']['data_params']['n_anomaly'],
+                config['Graph']['data_params']['m_anomaly'],
+                config['Graph']['data_params']['N_swap1'],
+                config['Graph']['data_params']['N_swap2'], ## TODO DEFINE N_SWAP2 
+                config['Graph']['data_params']['weight'],
                 logger,
                 #graph_output,
                 args.output,
+                config['Graph']['data_params']['basename'],
                 seed)
+        generator.run()
+    if config['Graph']['generate_model']:
+        logger.info('generating graph')
+        generator = ModelGraph(
+                config['Graph']['model_params']['n_graphAnomaly'],
+                config['Graph']['model_params']['n_streamAnomaly'],
+                config['Graph']['model_params']['nNodes'],
+                config['Graph']['model_params']['nNodes_graphAnomaly'],
+                config['Graph']['model_params']['nNodes_streamAnomaly'],
+                config['Graph']['model_params']['nEdges_normality'],
+                config['Graph']['model_params']['nEdges_graphAnomaly'],
+                config['Graph']['model_params']['nEdges_streamAnomaly'],
+                args.output,
+                seed,
+                logger)
         generator.run()
 
     # generate timeserie

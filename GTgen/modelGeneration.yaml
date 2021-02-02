@@ -1,15 +1,27 @@
 Graph:
-    generate: False # choose to generate or not
-    params:
-        degree: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/taxi3000/taxi.degree"
-        weight: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/taxi3000/taxi_stream.txt.weight.d"
-        numberOfAnomalies: 3
+    #generate: True # choose to generate or not
+    generate_data: False
+    data_params:
+        degree: "/home/jkaradayi/projects/modules_stufs/GTgen.bkp/GTgen/data/taxi1000/taxi.degree"
+        weight: "/home/jkaradayi/projects/modules_stufs/GTgen.bkp/GTgen/data/taxi1000/taxi_stream.txt.weight.d"
+        numberOfAnomalies: 1
         n_anomaly: 50 # TODO: voir si je trouve des valeurs qui font casser 
         m_anomaly: 500
-        N_swap: 10
+        N_swap1: 0.000001
+        N_swap2: 10
+    generate_model: True
+    model_params:
+        n_graphAnomaly: 1
+        n_streamAnomaly: 1
+        nNodes: 10
+        nNodes_graphAnomaly: 5
+        nNodes_streamAnomaly: 3
+        nEdges_normality: 7
+        nEdges_graphAnomaly: 3
+        nEdges_streamAnomaly: 3
 TimeSerie:
-    generate: True
+    generate: False
     params:
-        dataset: "/home/jkaradayi/projects/benchmark/processor/GTgen/GTgen/data/taxi3000/taxi_stream.txt.ts"
+        dataset: "/home/jkaradayi/projects/modules_stufs/GTgen.bkp/GTgen/data/taxi3000/taxi_stream.txt.ts"
         anomaly_type: "regimeShift"
         anomaly_length: 0.1

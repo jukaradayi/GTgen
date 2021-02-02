@@ -9,7 +9,7 @@ import logging
 import numpy as np
 
 def test_multiple_edges(logger):
-    G = GraphWithAnomaly([(0,2),(1,4), (2,3), (3,2),(4,2), (5,3)], 1, 4, 3, 0, 0, [(1,2), (1,3)], logger, './')
+    G = DataGraph([(0,2),(1,4), (2,3), (3,2),(4,2), (5,3)], 1, 4, 3, 0, 0, [(1,2), (1,3)], logger, './', 'test')
 
     # GNM anomaly
     #G._generate_anomaly()

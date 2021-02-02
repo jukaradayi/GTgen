@@ -11,31 +11,38 @@
     and finally adding "small" (TODO to be defined) G_lsan erdos renyii as 
     "link stream anomaly".
 """
-
+import ipdb
 import time
 import numpy as np
 from GTgen.graph import *
 from GTgen.graphModels import *
 
-class ErdosRenyiWithAnomaly():
+class ModelGraph():
     """
         Attributes:
         -----------
         n_graphAnomaly: int,
             number of "graph anomaly"
-        n_lsAnomaly: int,
+        n_streamAnomaly: int,
             number of "link stream anomaly"
-        nNodes_normality: int,
-            number of nodes to be used in normality
+        nNodes: int,
+            number of nodes of "complete" graph (normality + all anomalies)
         nNodes_graphAnomaly: int,
             number of nodes to be used in anomaly (TODO: maybe max so not all anomaly are the same?)
-
-        nNodes_lsAnomaly,
+        nNodes_streamAnomaly: int,
+            number of Nodes in stream anomaly
         nEdges_normality: int,
             number of edges to generatefor normal graph
-        nEdges_graphAnomaly,
-        nEdges_lsAnomaly
-
+        nEdges_graphAnomaly: int,
+            number of edges in graph Anomaly
+        nEdges_streamAnomaly: int,
+            number of edges in stream anomaly
+        output: str,
+            folder in which normal and anomaly graph are written
+        seed: int,
+            random seed for numpy (if not fixed already)
+        logger: logger,
+            a logger
     """
 
     def __init__(self,
@@ -47,6 +54,7 @@ class ErdosRenyiWithAnomaly():
             nEdges_normality,
             nEdges_graphAnomaly,
             nEdges_streamAnomaly,
+            output,
             seed=None,
             logger=None):
             
@@ -57,7 +65,10 @@ class ErdosRenyiWithAnomaly():
 
         # Number of nodes involved in the anomalies
         # Must be lower than total number of nodes
-        # TODO assert 
+        assert nNodes_graphAnomaly < nNodes, ("graph anomaly should be "
+                    "smaller than normal graph")
+        assert nNodes_streamAnomaly < nNodes, ("stream anomaly should be "
+                    "smaller than normal graph")
         self.nNodes_graphAnomaly = nNodes_graphAnomaly
         self.nNodes_streamAnomaly = nNodes_streamAnomaly
        
@@ -67,12 +78,16 @@ class ErdosRenyiWithAnomaly():
         self.nEdges_streamAnomaly = nEdges_streamAnomaly
         self.logger=logger
 
-    def generate_normality(self):
-        self.G_normality = Graph(edges=[],
+        # instantiate Normal Graph
+        self.G_normal = Graph(edges=[],
                 nodes=set(),
                 degrees=None, weight=np.empty((0,)),
                 logger=self.logger,
                 merge_multiedges=True)
+
+
+    def generate_normality(self):
+        """ Generate graph with Erdos-Renyi model """
 
         normality_model = GNM(self.nNodes,
                               self.nEdges_normality,
@@ -82,57 +97,60 @@ class ErdosRenyiWithAnomaly():
         normality_model.run()
         self.logger.debug(f'normal graph edges:\n {normality_model.graph.edges}')
 
-        self.G_normality += normality_model.graph
+        self.G_normal += normality_model.graph
 
     def generate_graphAnomaly(self):
-        """ graph anomaly is add to normal graph """
-        #anomaly_model = GNM(self.nNodes_graphAnomaly,
-        #                      self.nEdges_graphAnomaly,
-        #                      seed=None,
-        #                      nodes=None, # todo check
-        #                      logger=self.logger)
+        """ Generate graph-anomalies with Erdos-Renyi model 
+            and add it to normal graph.
+            When an edge of the graph-anomaly already exist in normal graph,
+            they are fused as one simple edge, and its weight is increased by
+            one.
+        """
         for i in range(self.n_graphAnomaly):
             # choose nodes at random
-            nodes = set(np.random.choice(range(self.nNodes), self.nNodes_graphAnomaly))
-
-            #nodes = set(range(nNodes_normality+i*nNodes_graphAnomaly,
-            #                 nNodes_normality+(i+1)*nNodes_graphAnomaly))
+            nodes = set(np.random.choice(range(self.nNodes), self.nNodes_graphAnomaly, replace=False))
             anomaly_model = GNM(self.nNodes_graphAnomaly,
                               self.nEdges_graphAnomaly,
                               seed=None,
-                              nodes=nodes, # todo set good nodes
+                              nodes=nodes,
                               logger=self.logger)
 
             anomaly_model.run()
             self.logger.debug(f'graph anomalies edges:\n {anomaly_model.graph.edges}')
-            self.G_normality += anomaly_model.graph
+            self.G_normal += anomaly_model.graph
 
     def generate_streamAnomaly(self):
-        """ stream anomaly is stored seperately from normal graph """
-        # choose nodes at random
-        nodes = set(np.random.choice(range(self.nNodes), self.nNodes_streamAnomaly))
-
-        #nodes=set(range(nNodes_normality + n_graphAnomaly * nNodes_graphAnomaly,
-        #           nNodes_normality + n_graphAnomaly * nNodes_graphAnomaly + nNodes_streamAnomaly))
+        """ Generate Stream Anomaly with Erdos-Renyi Model.
+            The stream anomaly shares its node with the normal graph, but
+            is stored and written separately.
+        """
         self.G_anomaly = Graph(edges=[],
-                nodes=nodes,
+                nodes=set(),
                 degrees=None, weight=np.empty((0,)),
                 logger=self.logger,
                 merge_multiedges=True)
 
-        anomaly_model = GNM(self.nNodes_streamAnomaly,
+        for i in range(self.n_streamAnomaly):
+            # choose nodes at random
+            nodes = set(np.random.choice(range(self.nNodes), self.nNodes_streamAnomaly, replace=False))
+
+            anomaly_model = GNM(self.nNodes_streamAnomaly,
                               self.nEdges_streamAnomaly,
                               seed=None,
-                              nodes=set(range(self.nNodes)), # todo check
+                              nodes=nodes, # todo check
                               logger=self.logger)
-        anomaly_model.run()
-        self.logger.debug(f'stream anomaly graph edges:\n {anomaly_model.graph.edges}')
-        self.G_anomaly += anomaly_model.graph
+            anomaly_model.run()
+            self.logger.debug(f'stream anomaly graph edges:\n {anomaly_model.graph.edges}')
+            self.G_anomaly += anomaly_model.graph
 
     def run(self):
-        ipdb.set_trace()
+        self.logger.info('generating normal graph')
         self.generate_normality()
+        self.logger.info('generating graph-anomaly')
         self.generate_graphAnomaly()
+        self.logger.info('generating stream-anomaly')
         self.generate_streamAnomaly()
+        self.logger.info('writing graphs')
+
 
 

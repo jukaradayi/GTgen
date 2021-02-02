@@ -25,7 +25,7 @@ import numpy as np
 from collections import defaultdict
 from GTgen.graphModels import *
 
-class GraphWithAnomaly():
+class DataGraph():
     """
         Attributes:
         -----------
@@ -55,6 +55,7 @@ class GraphWithAnomaly():
             weight,
             logger,
             output,
+            basename,
             seed=None):
 
         self.logger = logger
@@ -84,6 +85,7 @@ class GraphWithAnomaly():
 
         # output
         self.output = output
+        self.basename = basename
 
         # weight vector
         self.weight = np.empty((N_edges,), dtype=np.int32)
@@ -475,8 +477,8 @@ class GraphWithAnomaly():
         self.G_anomaly.weight = self.weight[:self.G_anomaly.numberOfEdges]
         self.G_normal.weight = self.weight[self.G_anomaly.numberOfEdges:]
 
-        self.G_normal.write_graph(os.path.join(self.output, 'normal_graph.txt'))
-        self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_graph.txt'))
+        self.G_normal.write_graph(os.path.join(self.output, 'normal_'+self.basename))
+        self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_'+self.basename))
         ## when no multi edges, concatenate graphs
         #global_graph = self.G_anomaly + self.G_normal
 
