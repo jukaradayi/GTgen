@@ -11,7 +11,8 @@ Python API Documentation
 
    graph
    graphModels
-   genGraph
+   genDataGraph
+   genModelGraph
    timeserie
    genTimeserie
 

@@ -1,4 +1,4 @@
-.. _genGraph_class:
+.. _genAllModel_class:
 
 Generate Graph
 ~~~~~~~~~~~~~~
@@ -6,10 +6,10 @@ Generate Graph
 .. contents:: Contents
    :local:
 
-GenGraph Class
+GenModelGraph Class
 --------------
 
-.. automodule:: GTgen.genGraph
+.. automodule:: GTgen.genModelGraph
     :members:
     :inherited-members:
     :undoc-members:

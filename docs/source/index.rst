@@ -6,6 +6,9 @@
 GTgen's documentation
 =====================
 
+
+* TODO use real math notations
+
 * GTgen is a python software that provides a simple interface to generate 
   random graphs and timeseries given real datasets
 
@@ -14,6 +17,8 @@ GTgen's documentation
    :caption: Contents:
 
    installation
+   random_graph_generation/index
+   random_timeserie_generation/index
    python/index
 
 
