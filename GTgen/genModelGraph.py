@@ -11,6 +11,7 @@
     and finally adding "small" (TODO to be defined) G_lsan erdos renyii as 
     "link stream anomaly".
 """
+import os
 import ipdb
 import time
 import numpy as np
@@ -76,7 +77,8 @@ class ModelGraph():
         self.nEdges_graphAnomaly = nEdges_graphAnomaly
 
         self.nEdges_streamAnomaly = nEdges_streamAnomaly
-        self.logger=logger
+        self.logger = logger
+        self.output = output
 
         # instantiate Normal Graph
         self.G_normal = Graph(edges=[],
@@ -151,6 +153,8 @@ class ModelGraph():
         self.logger.info('generating stream-anomaly')
         self.generate_streamAnomaly()
         self.logger.info('writing graphs')
+        self.G_normal.write_graph(os.path.join(self.output, 'normal_graph.txt'))
+        self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_graph.txt'))
 
 
 
