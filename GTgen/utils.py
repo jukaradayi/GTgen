@@ -12,29 +12,30 @@ def read_config(conf_file):
 def check_config(config):
     """ Check consistency of configuration file
     """
-    assert 'degree' in config['Graph']['data_params']
-    assert os.path.isfile(config['Graph']['data_params']['degree']), "degree file doesn't exist"
-    config['Graph']['data_params']['basename'] = os.path.basename(config['Graph']['data_params']['degree'])
-    _, degree_list = _read_degrees(config['Graph']['data_params']['degree'])
-    config['Graph']['data_params']['degree'] = degree_list
+    if config['Graph']['generate_data']:
+        assert 'degree' in config['Graph']['data_params']
+        assert os.path.isfile(config['Graph']['data_params']['degree']), "degree file doesn't exist"
+        config['Graph']['data_params']['basename'] = os.path.basename(config['Graph']['data_params']['degree'])
+        _, degree_list = _read_degrees(config['Graph']['data_params']['degree'])
+        config['Graph']['data_params']['degree'] = degree_list
 
-    # check anomaly consistency
-    #if config['Graph']['params']['numberOfAnomalie
-    if "numberOfAnomalies" not in config['Graph']['data_params']:
-        print('warning: no number of anomalies in config, assuming 0')
-    else:
-        assert "n_anomaly" in config['Graph']['data_params']
-        assert "m_anomaly" in config['Graph']['data_params']
-        assert config['Graph']['data_params']['n_anomaly'] * config['Graph']['data_params']['numberOfAnomalies'] < len(config['Graph']['data_params']['degree']), "anomaly has more nodes than normal graph" 
-        degrees = [deg for _, deg in config['Graph']['data_params']['degree']]
-        assert config['Graph']['data_params']['m_anomaly'] * config['Graph']['data_params']['numberOfAnomalies'] < sum(degrees)/2, "anomaly has more edges than normal graph"
+        # check anomaly consistency
+        #if config['Graph']['params']['numberOfAnomalie
+        if "numberOfAnomalies" not in config['Graph']['data_params']:
+            print('warning: no number of anomalies in config, assuming 0')
+        else:
+            assert "n_anomaly" in config['Graph']['data_params']
+            assert "m_anomaly" in config['Graph']['data_params']
+            assert config['Graph']['data_params']['n_anomaly'] * config['Graph']['data_params']['numberOfAnomalies'] < len(config['Graph']['data_params']['degree']), "anomaly has more nodes than normal graph" 
+            degrees = [deg for _, deg in config['Graph']['data_params']['degree']]
+            assert config['Graph']['data_params']['m_anomaly'] * config['Graph']['data_params']['numberOfAnomalies'] < sum(degrees)/2, "anomaly has more edges than normal graph"
 
-    # check dataset path is filled and exists
-    assert "weight" in config['Graph']['data_params']
-    assert os.path.isfile(config['Graph']['data_params']['weight'])
-    #print(config['Graph']['data_params']['weight'])
-    g_counter, g_weights = _read_dataset(config['Graph']['data_params']['weight'])
-    config['Graph']['data_params']['weight'] = g_weights
+        # check dataset path is filled and exists
+        assert "weight" in config['Graph']['data_params']
+        assert os.path.isfile(config['Graph']['data_params']['weight'])
+        #print(config['Graph']['data_params']['weight'])
+        g_counter, g_weights = _read_dataset(config['Graph']['data_params']['weight'])
+        config['Graph']['data_params']['weight'] = g_weights
     # get implied number of edges
     #n_edges = 0
     #n_interaction_g = 0
@@ -57,10 +58,11 @@ def check_config(config):
 
     # Timeseries parameters
     #if config['TimeSerie']['params']['model'] == 'TSFromDataset':
-    assert "dataset" in config['TimeSerie']['params']
-    assert os.path.isfile(config['TimeSerie']['params']['dataset'])
-    ts_counter, ts_weights = _read_dataset(config['TimeSerie']['params']['dataset'])
-    config['TimeSerie']['params']['dataset'] = ts_weights
+    if config['TimeSerie']['generate_data']:
+        assert "dataset" in config['TimeSerie']['data_params']
+        assert os.path.isfile(config['TimeSerie']['data_params']['dataset'])
+        ts_counter, ts_weights = _read_dataset(config['TimeSerie']['data_params']['dataset'])
+        config['TimeSerie']['data_params']['dataset'] = ts_weights
 
 
 def _read_dataset(dataset):

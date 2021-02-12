@@ -3,7 +3,7 @@ import numpy as np
 
 def test_regimeShift(logger):
     value_list = [0,2,1,1,1,2,3,2,4,7,8,9,8,9,10,7,8,1,1,0]
-    timeserie = TimeserieWithAnomaly(value_list, "regimeShift",
+    timeserie = DataTimeserie(value_list, "regimeShift",
                                     8/20, "./", logger)
     # do test 40 times because of random choice
     for i in range(40):
@@ -19,7 +19,7 @@ def test_regimeShift(logger):
 
 def test_peak(logger):
     value_list = [0,2,1,1,1,2,3,2,4,9,10,1,1,0]
-    timeserie =  TimeserieWithAnomaly(value_list, "peak",
+    timeserie =  DataTimeserie(value_list, "peak",
                                     1/7, "./", logger)
     for i in range(27):
         timeserie._generate_anomaly()

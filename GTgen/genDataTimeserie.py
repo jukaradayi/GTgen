@@ -23,14 +23,14 @@
     >>>        -TS`[:pos] + TS'[pos+(anomaly_duration):] = TS[:an_i] 
     >>>         (where + designates the concatenation of arrays)
 """
-
+import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
 
 from GTgen.timeserie import * 
 
-class TimeserieWithAnomaly():
+class DataTimeserie():
     """
          Attributes:
          -----------
@@ -59,13 +59,14 @@ class TimeserieWithAnomaly():
         self.anomaly_duration = int(len(value_list) * anomaly_duration)
         self.anomaly_index = None
 
-        self.timeserie = Timeserie(serie=np.array(value_list), out_path=output)
-        self.an_timeserie = Timeserie(serie=np.zeros(self.timeserie.serie.shape), out_path=output)
+        self.timeserie = Timeserie(serie=np.array(value_list), out_path=os.path.join(output,'normal_serie.txt'))
+        self.an_timeserie = Timeserie(serie=np.zeros(self.timeserie.serie.shape), out_path=os.path.join(output, 'anomaly_serie.txt'))
 
         # sort timeserie
         self.timeserie.serie = self.timeserie.sorted_timeserie
         self.logger = logger
         self.output = output
+        self.plot = plot
 
     def _generate_anomaly(self):
         """ To generate an anomaly, take the value_list sorted, 
@@ -163,4 +164,5 @@ class TimeserieWithAnomaly():
             self._generate_peak()
         if self.plot:
             self.timeserie.plot()
-        self.timeserie.write_TS(self.output)
+        self.timeserie.write_TS()
+        self.an_timeserie.write_TS()

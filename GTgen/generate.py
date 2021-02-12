@@ -8,7 +8,8 @@ import numpy as np
 
 from GTgen.genDataGraph import *
 from GTgen.genModelGraph import *
-from GTgen.genTimeserie import *
+from GTgen.genDataTimeserie import *
+from GTgen.genModelTimeserie import *
 from GTgen.utils import *
 
 """
@@ -69,7 +70,10 @@ def main():
         seed = np.random.choice(10**6)
     else:
         seed = args.seed
+
+    # log seed and write it in config to write it in output folder
     logger.info('seed fixed to {}'.format(seed))
+    config['seed'] = seed
     np.random.seed(seed)
 
     # manage output directory
@@ -107,24 +111,44 @@ def main():
                 config['Graph']['model_params']['nEdges_normality'],
                 config['Graph']['model_params']['nEdges_graphAnomaly'],
                 config['Graph']['model_params']['nEdges_streamAnomaly'],
+                config['Graph']['model_params']['nInteractions'],
+                config['Graph']['model_params']['nInteractions_streamAnomaly'],
                 args.output,
                 seed,
                 logger)
         generator.run()
 
     # generate timeserie
-    if config['TimeSerie']['generate']:
+    if config['TimeSerie']['generate_data']:
         logger.info('generating timeserie')
         timeserie_output = os.path.join(args.output, 'timeserie.txt')
-        generator = TimeserieWithAnomaly(np.array(
-            [val for _, val in config['TimeSerie']['params']['dataset']]),
-                config['TimeSerie']['params']['anomaly_type'],
-                config['TimeSerie']['params']['anomaly_length'], 
-                timeserie_output, logger)
+        generator = DataTimeserie(np.array(
+            [val for _, val in config['TimeSerie']['data_params']['dataset']]),
+                config['TimeSerie']['data_params']['anomaly_type'],
+                config['TimeSerie']['data_params']['anomaly_length'], 
+                args.output, logger)
         generator.run()
 
+    # generate Model Timeserie
+    if config['TimeSerie']['generate_model']:
+       generator = ModelTimeserie(
+               config['TimeSerie']['model_params']['duration'],
+               config['TimeSerie']['model_params']['duration_streamAnomaly'],
+               config['TimeSerie']['model_params']['duration_tsAnomaly'],
+               config['TimeSerie']['model_params']['cum_sum'],
+               config['TimeSerie']['model_params']['cum_sum_streamAnomaly'],
+               args.output,
+               logger)
+       generator.run()
+
     # copy yaml in output folder
-    shutil.copyfile(args.yaml, os.path.join( args.output, "config.yaml"))
+    #shutil.copyfile(args.yaml, os.path.join( args.output, "config.yaml"))
+    # clean datasets before writing
+    config['TimeSerie']['data_params']['dataset'] = ''
+    config['Graph']['data_params']['degree'] = ''
+    config['Graph']['data_params']['weight'] = ''
+    with open(os.path.join( args.output, "config.yaml"), 'w') as fout:
+        yaml.dump(config, fout)
 
 
 if __name__ == "__main__":

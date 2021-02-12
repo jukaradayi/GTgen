@@ -36,9 +36,9 @@ class Timeserie():
     def duration(self):
         return len(self.serie)
 
-    def write_TS(self, out_path):
+    def write_TS(self):
 
-        with open(out_path,'w') as fout:
+        with open(self.out_path,'w') as fout:
             for time, val in enumerate(self.serie):
                 # don't write if value is 0
                 if val > 0:
