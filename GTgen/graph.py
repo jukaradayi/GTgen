@@ -81,7 +81,8 @@ class Graph():
             # when merging multi edges, remove them from other edge list
             # and increment weight
             multiedges = list(self.edge_set.intersection(other.edge_set))
-            other_edges = other.edges.copy()
+            #_other_edges = other.edges.copy()
+            other_edges = []
             other_mask = []
 
             for edge in multiedges:
@@ -89,10 +90,12 @@ class Graph():
                 self.weight[edge_idx] += 1
 
                 # remove from other graph edges list
-                other_idx = other_edges.index(edge)
-                del(other_edges[other_idx])
+                other_idx = other.edges.index(edge)
+                #del(other_edges[other_idx])
                 other_mask.append(other_idx)
             else:
+                other_edges = [edge for idx, edge in enumerate(other.edges) if idx not in other_mask]
+
                 # merge updated list and weights
                 total_edges = self.edges + other_edges
                 other_weight = other.weight[[i for i in range(len(other.weight)) if i not in other_mask]]

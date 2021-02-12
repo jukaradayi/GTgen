@@ -17,6 +17,7 @@ GTgen's documentation
    :caption: Contents:
 
    installation
+   benchmark/index
    random_graph_generation/index
    random_timeserie_generation/index
    python/index

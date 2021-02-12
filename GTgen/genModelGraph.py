@@ -38,6 +38,12 @@ class ModelGraph():
             number of edges in graph Anomaly
         nEdges_streamAnomaly: int,
             number of edges in stream anomaly
+        nInteractions: int,
+            number of interactions of normal graph + anomaly graph. 
+            The weights will be set uniformly at random so that their sum is
+            the number of interactions. should be higher than number of edges.
+        nInteractions_streamAnomaly: int,
+            same thing for stream anomaly graph.
         output: str,
             folder in which normal and anomaly graph are written
         seed: int,
@@ -55,6 +61,8 @@ class ModelGraph():
             nEdges_normality,
             nEdges_graphAnomaly,
             nEdges_streamAnomaly,
+            nInteractions,
+            nInteractions_streamAnomaly,
             output,
             seed=None,
             logger=None):
@@ -72,11 +80,19 @@ class ModelGraph():
                     "smaller than normal graph")
         self.nNodes_graphAnomaly = nNodes_graphAnomaly
         self.nNodes_streamAnomaly = nNodes_streamAnomaly
-       
+
+        # Number of edges of each graph 
         self.nEdges_normality = nEdges_normality
         self.nEdges_graphAnomaly = nEdges_graphAnomaly
-
         self.nEdges_streamAnomaly = nEdges_streamAnomaly
+
+        # Define Number of interaction required
+        assert nInteractions >= nEdges_normality + nEdges_graphAnomaly
+        assert nInteractions_streamAnomaly >= nEdges_streamAnomaly
+        self.nInteractions = nInteractions
+        self.nInteractions_streamAnomaly = nInteractions_streamAnomaly
+
+        # logger & output
         self.logger = logger
         self.output = output
 
@@ -87,7 +103,6 @@ class ModelGraph():
                 logger=self.logger,
                 merge_multiedges=True)
 
-
     def generate_normality(self):
         """ Generate graph with Erdos-Renyi model """
 
@@ -97,8 +112,9 @@ class ModelGraph():
                               nodes=set(range(self.nNodes)), # todo check
                               logger=self.logger)
         normality_model.run()
-        self.logger.debug(f'normal graph edges:\n {normality_model.graph.edges}')
-
+        self.logger.debug(f'normal graph edges:\n'
+            '{normality_model.graph.edges}')
+        print(len(normality_model.graph.weight))
         self.G_normal += normality_model.graph
 
     def generate_graphAnomaly(self):
@@ -110,7 +126,9 @@ class ModelGraph():
         """
         for i in range(self.n_graphAnomaly):
             # choose nodes at random
-            nodes = set(np.random.choice(range(self.nNodes), self.nNodes_graphAnomaly, replace=False))
+            nodes = set(np.random.choice(range(self.nNodes), 
+                                         self.nNodes_graphAnomaly,
+                                         replace=False))
             anomaly_model = GNM(self.nNodes_graphAnomaly,
                               self.nEdges_graphAnomaly,
                               seed=None,
@@ -118,7 +136,9 @@ class ModelGraph():
                               logger=self.logger)
 
             anomaly_model.run()
-            self.logger.debug(f'graph anomalies edges:\n {anomaly_model.graph.edges}')
+            print(len(anomaly_model.graph.weight))
+            self.logger.debug(f'graph anomalies edges:\n'
+                '{anomaly_model.graph.edges}')
             self.G_normal += anomaly_model.graph
 
     def generate_streamAnomaly(self):
@@ -134,7 +154,9 @@ class ModelGraph():
 
         for i in range(self.n_streamAnomaly):
             # choose nodes at random
-            nodes = set(np.random.choice(range(self.nNodes), self.nNodes_streamAnomaly, replace=False))
+            nodes = set(np.random.choice(range(self.nNodes), 
+                                         self.nNodes_streamAnomaly,
+                                         replace=False))
 
             anomaly_model = GNM(self.nNodes_streamAnomaly,
                               self.nEdges_streamAnomaly,
@@ -142,8 +164,21 @@ class ModelGraph():
                               nodes=nodes, # todo check
                               logger=self.logger)
             anomaly_model.run()
-            self.logger.debug(f'stream anomaly graph edges:\n {anomaly_model.graph.edges}')
+            self.logger.debug(f'stream anomaly graph edges:\n '
+                '{anomaly_model.graph.edges}')
             self.G_anomaly += anomaly_model.graph
+
+    @staticmethod
+    def set_weights(nInteractions, graph):
+        """ Randomly choose edges to increment weight until nInteractions is
+            reached
+        """
+        sum_weights = np.sum(graph.weight)
+        print(f'{sum_weights}, {nInteractions}')
+        while sum_weights < nInteractions:
+            edge_idx = np.random.choice(len(graph.edges))
+            graph.weight[edge_idx] += 1
+            sum_weights += 1
 
     def run(self):
         self.logger.info('generating normal graph')
@@ -152,9 +187,13 @@ class ModelGraph():
         self.generate_graphAnomaly()
         self.logger.info('generating stream-anomaly')
         self.generate_streamAnomaly()
+        self.logger.info('generate weights')
+        self.set_weights(self.nInteractions, self.G_normal)
+        self.set_weights(self.nInteractions_streamAnomaly, self.G_anomaly)
         self.logger.info('writing graphs')
-        self.G_normal.write_graph(os.path.join(self.output, 'normal_graph.txt'))
-        self.G_anomaly.write_graph(os.path.join(self.output, 'anomaly_graph.txt'))
-
+        self.G_normal.write_graph(os.path.join(self.output,
+                                              'normal_graph.txt'))
+        self.G_anomaly.write_graph(os.path.join(self.output,
+                                               'anomaly_graph.txt'))
 
 
