@@ -1,0 +1,36 @@
+Graph:
+    #generate: True # choose to generate or not
+    generate_data: False
+    data_params:
+        degree: "/home/jkaradayi/projects/benchmark.bkp/output/mawi_1day_grain0.001/mawi/mawi_stream.txt.deg"
+        weight: "/home/jkaradayi/projects/benchmark.bkp/output/mawi_1day_grain0.001/mawi/20190409.txt.weight.d"
+        numberOfAnomalies: 1
+        n_anomaly: 50 # TODO: voir si je trouve des valeurs qui font casser 
+        m_anomaly: 500
+        N_swap1: 10
+        N_swap2: 10
+    generate_model: False
+    model_params:
+        n_graphAnomaly: 1
+        n_streamAnomaly: 1
+        nNodes: 15
+        nNodes_graphAnomaly: 5
+        nNodes_streamAnomaly: 5
+        nEdges_normality: 30
+        nEdges_graphAnomaly: 7
+        nEdges_streamAnomaly: 10
+        nInteractions: 87
+        nInteractions_streamAnomaly: 25
+TimeSerie:
+    generate_data: True
+    data_params:
+        dataset: "/home/jkaradayi/projects/benchmark.bkp/output/mawi_1day_grain0.001/mawi/20190409.txt.ts"
+        anomaly_type: "regimeShift"
+        anomaly_length: 0.1
+    generate_model: False
+    model_params:
+        duration: 28
+        duration_streamAnomaly: 10
+        duration_tsAnomaly: 10
+        cum_sum: 87
+        cum_sum_streamAnomaly: 25

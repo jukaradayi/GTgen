@@ -36,7 +36,7 @@ class Graph():
     def __init__(self, edges=[], nodes=set(),
             edge_set = None,
             degrees=None,
-            weight=np.empty((0,)),
+            weight=np.empty((0,), dtype=np.int32),
             logger=None,
             merge_multiedges=False):
         self.edges = edges
@@ -117,7 +117,7 @@ class Graph():
         """ Initiate weights as array of 0s.
             Needs to be done when graph is computed
         """
-        self.weight = np.ones((len(self.edges)))
+        self.weight = np.ones((len(self.edges)), dtype=np.int32)
 
     def shuffle_weights(self):
         assert self.weight is not None, ("Attempting to shuffle weights,"
@@ -136,7 +136,7 @@ class Graph():
                   len(self.weight), len(self.edges)))
         with open(output, 'w') as fout:
             for edge, weight in sorted(zip(self.edges, self.weight)):
-                fout.write('{}-{} {}\n'.format(edge[0], edge[1], weight))
+                fout.write('{}-{} {}\n'.format(int(edge[0]), int(edge[1]), int(weight)))
 
     def write_graph(self, output):
         if self.weight is None:

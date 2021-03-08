@@ -85,8 +85,8 @@ def main():
     #if config['Graph']['generate']:
     if config['Graph']['generate_data']:
         #graph_output = os.path.join(args.output, 'graph.txt')
-        logger.info('generating graph')
-        generator = DataGraph(
+        logger.info('generating graph from data')
+        dg_generator = DataGraph(
                 config['Graph']['data_params']['degree'],
                 config['Graph']['data_params']['numberOfAnomalies'],
                 config['Graph']['data_params']['n_anomaly'],
@@ -99,10 +99,11 @@ def main():
                 args.output,
                 config['Graph']['data_params']['basename'],
                 seed)
-        generator.run()
+        dg_generator.run()
+        dg_nw_sum, dg_anw_sum = dg_generator.sum_normality_weight
     if config['Graph']['generate_model']:
-        logger.info('generating graph')
-        generator = ModelGraph(
+        logger.info('generating graph from model')
+        mg_generator = ModelGraph(
                 config['Graph']['model_params']['n_graphAnomaly'],
                 config['Graph']['model_params']['n_streamAnomaly'],
                 config['Graph']['model_params']['nNodes'],
@@ -116,22 +117,26 @@ def main():
                 args.output,
                 seed,
                 logger)
-        generator.run()
+        mg_generator.run()
 
     # generate timeserie
     if config['TimeSerie']['generate_data']:
-        logger.info('generating timeserie')
+        logger.info('generating timeserie from data')
         timeserie_output = os.path.join(args.output, 'timeserie.txt')
-        generator = DataTimeserie(np.array(
+        #dg_anw_sum = 219446
+        #dg_nw_sum = 836318892
+        dt_generator = DataTimeserie(np.array(
             [val for _, val in config['TimeSerie']['data_params']['dataset']]),
                 config['TimeSerie']['data_params']['anomaly_type'],
-                config['TimeSerie']['data_params']['anomaly_length'], 
+                config['TimeSerie']['data_params']['anomaly_length'],
+                dg_nw_sum, dg_anw_sum,
                 args.output, logger)
-        generator.run()
+        dt_generator.run()
 
     # generate Model Timeserie
     if config['TimeSerie']['generate_model']:
-       generator = ModelTimeserie(
+       logger.info('generating timeserie from model')
+       mt_generator = ModelTimeserie(
                config['TimeSerie']['model_params']['duration'],
                config['TimeSerie']['model_params']['duration_streamAnomaly'],
                config['TimeSerie']['model_params']['duration_tsAnomaly'],
@@ -139,14 +144,16 @@ def main():
                config['TimeSerie']['model_params']['cum_sum_streamAnomaly'],
                args.output,
                logger)
-       generator.run()
-
+       mt_generator.run()
+    # TODO assert generator.sum_normality = generator.sum_normality
     # copy yaml in output folder
     #shutil.copyfile(args.yaml, os.path.join( args.output, "config.yaml"))
     # clean datasets before writing
-    config['TimeSerie']['data_params']['dataset'] = ''
-    config['Graph']['data_params']['degree'] = ''
-    config['Graph']['data_params']['weight'] = ''
+    if config['TimeSerie']['generate_data']:
+        config['TimeSerie']['data_params']['dataset'] = ''
+    if config['Graph']['generate_data']: 
+        config['Graph']['data_params']['degree'] = ''
+        config['Graph']['data_params']['weight'] = ''
     with open(os.path.join( args.output, "config.yaml"), 'w') as fout:
         yaml.dump(config, fout)
 

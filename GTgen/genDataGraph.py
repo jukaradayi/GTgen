@@ -65,7 +65,7 @@ class DataGraph():
             np.random.seed(seed)
 
         # objective degree sequence
-        self.global_degree_list = np.array(degree_list)
+        self.global_degree_list = np.array(degree_list, dtype=np.int32)
         self.normal_degree_list = np.empty(
                 (self.global_degree_list.shape[0], 2))
 
@@ -93,6 +93,11 @@ class DataGraph():
         for val, num in weight:
             self.weight[prev_idx:prev_idx+num] =  val
             prev_idx += num
+
+    @property
+    def sum_normality_weight(self):
+        #sum(self.weight)
+        return sum(self.G_normal.weight), sum(self.G_anomaly.weight)
 
     def _generate_anomaly(self):
         """ Generate numberOfAnomaly anomalies using GNM model.

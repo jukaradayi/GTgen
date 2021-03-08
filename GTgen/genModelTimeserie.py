@@ -65,7 +65,7 @@ class ModelTimeserie():
     @staticmethod
     def _generate_whitenoise(cum_sum, duration):
 
-        timeserie = np.ones((duration,))
+        timeserie = np.ones((duration,), dtype=np.int32)
         #cum_sum = np.sum(timeserie)
         while np.sum(timeserie) < cum_sum:
             idx = np.random.choice(duration)
@@ -83,7 +83,7 @@ class ModelTimeserie():
         # pick random index for stream anomaly
         self.logger.info('generating stream anomaly timeserie')
         _streamAnomaly = self._generate_whitenoise(self.cum_sum_streamAnomaly, self.duration_streamAnomaly)
-        streamAnomaly = np.zeros((self.duration,))
+        streamAnomaly = np.zeros((self.duration,), dtype=np.int32)
         an_idx = np.random.choice(self.duration - self.duration_streamAnomaly)
         streamAnomaly[an_idx : an_idx+self.duration_streamAnomaly] = _streamAnomaly
         self.streamAnomaly = Timeserie(serie = streamAnomaly,

@@ -13,14 +13,14 @@ Graph:
     model_params:
         n_graphAnomaly: 2
         n_streamAnomaly: 3
-        nNodes: 1000
-        nNodes_graphAnomaly: 250
-        nNodes_streamAnomaly: 300
-        nEdges_normality: 7000
-        nEdges_graphAnomaly: 1000
-        nEdges_streamAnomaly: 1000
-        nInteractions: 10500
-        nInteractions_streamAnomaly: 4000
+        nNodes: 15
+        nNodes_graphAnomaly: 5
+        nNodes_streamAnomaly: 5
+        nEdges_normality: 25
+        nEdges_graphAnomaly: 5
+        nEdges_streamAnomaly: 10
+        nInteractions: 40
+        nInteractions_streamAnomaly: 15
 TimeSerie:
     generate_data: False
     data_params:
@@ -29,8 +29,8 @@ TimeSerie:
         anomaly_length: 0.1
     generate_model: True
     model_params:
-        duration: 10000
-        duration_streamAnomaly: 1000
-        duration_tsAnomaly: 2000
-        cum_sum: 10500
-        cum_sum_streamAnomaly: 4000
+        duration: 25
+        duration_streamAnomaly: 5
+        duration_tsAnomaly: 10
+        cum_sum: 40
+        cum_sum_streamAnomaly: 15

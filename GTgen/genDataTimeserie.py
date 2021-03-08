@@ -50,6 +50,8 @@ class DataTimeserie():
     def __init__(self, value_list,
             anomaly_type,
             anomaly_duration,
+            norm_weight_sum,
+            an_weight_sum,
             output,
             logger,
             plot=False):
@@ -59,8 +61,12 @@ class DataTimeserie():
         self.anomaly_duration = int(len(value_list) * anomaly_duration)
         self.anomaly_index = None
 
-        self.timeserie = Timeserie(serie=np.array(value_list), out_path=os.path.join(output,'normal_serie.txt'))
-        self.an_timeserie = Timeserie(serie=np.zeros(self.timeserie.serie.shape), out_path=os.path.join(output, 'anomaly_serie.txt'))
+        # constrain the anomaly
+        self.norm_weight_sum = norm_weight_sum
+        self.an_weight_sum = an_weight_sum
+
+        self.timeserie = Timeserie(serie=np.array(value_list, dtype=np.int32), out_path=os.path.join(output,'normal_serie.txt'))
+        self.an_timeserie = Timeserie(serie=np.zeros(self.timeserie.serie.shape, dtype=np.int32), out_path=os.path.join(output, 'anomaly_serie.txt'))
 
         # sort timeserie
         self.timeserie.serie = self.timeserie.sorted_timeserie
@@ -68,23 +74,70 @@ class DataTimeserie():
         self.output = output
         self.plot = plot
 
+    #def _generate_anomaly(self):
+    #    """ To generate an anomaly, take the value_list sorted, 
+    #    pick random values for anomaly serie with the last 
+    #    anomaly_duration * len(value_list) as upper bound, and substract these
+    #    values to the normal serie.
+    #    """
+
+    #    # anomaly_duration is a ratio
+    #    self.anomaly_index = self.timeserie.duration - self.anomaly_duration
+    #    anomaly_indexes = list(range(self.anomaly_index, self.timeserie.duration))
+
+    #    # randomly pick values for anomaly
+    #    for value_index in anomaly_indexes:
+    #        an_value = np.random.choice(self.timeserie.serie[value_index])
+    #        self.an_timeserie.serie[value_index] = an_value
+    #        self.timeserie.serie[value_index] -= an_value
+
+    #    # shuffle remaining for "normality"
+    #    self.timeserie.shuffle_timeserie(
+    #            index_low = 0, index_high = self.anomaly_index)
+
+    #    # generate regime shift by shuffling highest values
+    #    np.random.shuffle(anomaly_indexes)
+    #    self.timeserie.serie[self.anomaly_index:] = self.timeserie.serie[anomaly_indexes]
+    #    self.an_timeserie.serie[self.anomaly_index:] = self.an_timeserie.serie[anomaly_indexes]
+
+    #    #self.timeserie.shuffle_timeserie(
+    #    #        index_low = self.anomaly_index, index_high = None)
+
     def _generate_anomaly(self):
         """ To generate an anomaly, take the value_list sorted, 
         pick random values for anomaly serie with the last 
         anomaly_duration * len(value_list) as upper bound, and substract these
         values to the normal serie.
         """
-
+        import time
         # anomaly_duration is a ratio
         self.anomaly_index = self.timeserie.duration - self.anomaly_duration
         anomaly_indexes = list(range(self.anomaly_index, self.timeserie.duration))
-
+        print('anomaly index length : {}'.format(len(anomaly_indexes)))
         # randomly pick values for anomaly
-        for value_index in anomaly_indexes:
-            an_value = np.random.choice(self.timeserie.serie[value_index])
-            self.an_timeserie.serie[value_index] = an_value
-            self.timeserie.serie[value_index] -= an_value
+        #self.an_weight_sum 
+        anomaly_cumsum = 0
+        print(self.an_weight_sum)
+        print('entering while')
+        while anomaly_cumsum < self.an_weight_sum:
+            #for value_index in anomaly_indexes:
+            #print('picking random value')
+            #t0 = time.time()
+            #value_index = np.random.choice(anomaly_indexes)
+            value_index = np.random.choice(self.timeserie.duration - self.anomaly_index) + self.anomaly_index
+            #t1 = time.time()
+            #print('entering if {}'.format(t1 - t0))
+            #an_value = np.random.choice(self.timeserie.serie[value_index])
+            if self.timeserie.serie[value_index] > 0 :
 
+                self.an_timeserie.serie[value_index] += 1 #an_value
+                self.timeserie.serie[value_index] -= 1 #an_value
+                anomaly_cumsum += 1
+                #if anomaly_cumsum % 1000 == 0:
+                #print('an cumsum {}'.format(anomaly_cumsum))
+
+
+        #print('outside of while')
         # shuffle remaining for "normality"
         self.timeserie.shuffle_timeserie(
                 index_low = 0, index_high = self.anomaly_index)

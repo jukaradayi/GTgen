@@ -99,7 +99,7 @@ class ModelGraph():
         # instantiate Normal Graph
         self.G_normal = Graph(edges=[],
                 nodes=set(),
-                degrees=None, weight=np.empty((0,)),
+                degrees=None, weight=np.empty((0,), dtype=np.int32),
                 logger=self.logger,
                 merge_multiedges=True)
 
@@ -148,7 +148,7 @@ class ModelGraph():
         """
         self.G_anomaly = Graph(edges=[],
                 nodes=set(),
-                degrees=None, weight=np.empty((0,)),
+                degrees=None, weight=np.empty((0,), dtype=np.int32),
                 logger=self.logger,
                 merge_multiedges=True)
 
@@ -189,6 +189,7 @@ class ModelGraph():
         self.generate_streamAnomaly()
         self.logger.info('generate weights')
         self.set_weights(self.nInteractions, self.G_normal)
+
         self.set_weights(self.nInteractions_streamAnomaly, self.G_anomaly)
         self.logger.info('writing graphs')
         self.G_normal.write_graph(os.path.join(self.output,
