@@ -4,7 +4,7 @@
     shuffle the timeserie between index_low and index_high
 """
 
-import ipdb
+#import ipdb
 import numpy as np
 import matplotlib.pyplot as plt
 

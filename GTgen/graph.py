@@ -10,7 +10,7 @@
         - its degree sequence as a dict {node:degree}
 """
 
-import ipdb
+#import ipdb
 import time
 import random
 import numpy as np

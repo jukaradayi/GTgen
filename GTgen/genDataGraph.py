@@ -1,10 +1,10 @@
 """
-    Using degrees sequence `S_dg` and weights sequence `S_w` from real dataset,
-    generate `numberOfAnomaly` graph G_an_i, with GNM model
+    Using degrees sequence `S_d` and weights sequence `S_w` measured on a dataset,
+    generate `numberOfAnomaly` graphs G_an_i, with GNM model
     with n_anomaly nodes and m_anomaly edges.
     Then, get normal graph `G_n` degree sequence such that 
 
-    >>> S_dn + sum(S_dan_i) for i in 0..numberOfAnomaly) = S_dg
+    >>> S_dn + sum(S_dan_i for i in 0..numberOfAnomaly) = S_d
     
     where `S_dn` is the degree sequence of normal graph, and `S_dan_i` is the 
     degree sequence of the ith anomaly graph.
@@ -17,7 +17,7 @@
 """
 
 import os
-import ipdb
+#import ipdb
 import time
 import random
 import numpy as np
@@ -36,9 +36,13 @@ class DataGraph():
         numberOfAnomaly: int,
             number of anomaly graph to generate. Each anomaly graph
             is generated with n_anomly nodes and m_anomaly edges.
-        N_swap: int,
+        N_swap1: int,
             The 'normal Graph' G_n will be generated with 
-            N_swap * N_edges edge swap, where N_edges is its number of edges
+            N_swap1 * N_edges edge swap, where N_edges is its number of edges
+        N_swap2: int,
+            After the 'global graph' G has been generated, and the multiple
+            edges have been removed by doing edge swaps, do a pass of 
+            N_swap2 * N_edges edge swap, to ensure that graph is not biased.
         weight: list of tuples,
             weight distribution, in the format [(val, num)] where val is the 
             weight value, and num is the number of edges having that weight.
@@ -64,12 +68,12 @@ class DataGraph():
             self.seed = seed
             np.random.seed(seed)
 
-        # objective degree sequence
+        # goal degree sequence
         self.global_degree_list = np.array(degree_list, dtype=np.int32)
         self.normal_degree_list = np.empty(
                 (self.global_degree_list.shape[0], 2))
 
-        # anomaly parameters to generate Erdos Renyi
+        # anomaly parameters to generate Erdos Renyi graphs
         self.numberOfAnomaly = numberOfAnomaly # number of anomalies
         self.n_anomaly = n_anomaly
         self.m_anomaly = m_anomaly # pick erdos renyi for anomaly
@@ -82,12 +86,11 @@ class DataGraph():
         self.N_swap1 = int(N_swap1 * N_edges)
         self.N_swap2 = N_swap2
 
-
-        # output
+        # write output
         self.output = output
         self.basename = basename
 
-        # weight vector
+        # initialise weight vector
         self.weight = np.empty((N_edges,), dtype=np.int32)
         prev_idx = 0
         for val, num in weight:
@@ -103,7 +106,6 @@ class DataGraph():
         """ Generate numberOfAnomaly anomalies using GNM model.
             The anomalies are concatenated in the same graph object, and
             the node sequence is increasing
-            
         """
         # instantiate anomaly graph
         self.G_anomaly = Graph(edges=[],
@@ -331,9 +333,6 @@ class DataGraph():
 
         n_swap = 0
         while (n_swap < N_swap):
-            # pick an edge at random ## TODO not necessary ?
-            #edge_index = np.random.randint(low=0, high=len(multiple_edges))
-            #multiple_edge = multiple_edges[edge_index]
 
             # choose at random which of the normal graph or anomaly to update
             p = np.random.uniform(0, 1)

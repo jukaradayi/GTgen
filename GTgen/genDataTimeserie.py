@@ -109,35 +109,25 @@ class DataTimeserie():
         anomaly_duration * len(value_list) as upper bound, and substract these
         values to the normal serie.
         """
-        import time
+        
         # anomaly_duration is a ratio
         self.anomaly_index = self.timeserie.duration - self.anomaly_duration
         anomaly_indexes = list(range(self.anomaly_index, self.timeserie.duration))
-        print('anomaly index length : {}'.format(len(anomaly_indexes)))
+        
         # randomly pick values for anomaly
-        #self.an_weight_sum 
         anomaly_cumsum = 0
-        print(self.an_weight_sum)
-        print('entering while')
         while anomaly_cumsum < self.an_weight_sum:
-            #for value_index in anomaly_indexes:
-            #print('picking random value')
-            #t0 = time.time()
-            #value_index = np.random.choice(anomaly_indexes)
+
             value_index = np.random.choice(self.timeserie.duration - self.anomaly_index) + self.anomaly_index
-            #t1 = time.time()
-            #print('entering if {}'.format(t1 - t0))
             #an_value = np.random.choice(self.timeserie.serie[value_index])
             if self.timeserie.serie[value_index] > 0 :
 
                 self.an_timeserie.serie[value_index] += 1 #an_value
                 self.timeserie.serie[value_index] -= 1 #an_value
                 anomaly_cumsum += 1
-                #if anomaly_cumsum % 1000 == 0:
-                #print('an cumsum {}'.format(anomaly_cumsum))
 
-
-        #print('outside of while')
+        self.logger.info('finished while')
+        
         # shuffle remaining for "normality"
         self.timeserie.shuffle_timeserie(
                 index_low = 0, index_high = self.anomaly_index)
@@ -215,6 +205,9 @@ class DataTimeserie():
         #    self._generate_regimeShift()
         if self.anomaly_type == "peak":
             self._generate_peak()
+        elif self.anomaly_type == "regimeShift":
+            # if regime shift use anomaly timeserie as is
+            pass
         if self.plot:
             self.timeserie.plot()
         self.timeserie.write_TS()

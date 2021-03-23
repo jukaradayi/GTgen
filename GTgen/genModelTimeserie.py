@@ -33,7 +33,7 @@ class ModelTimeserie():
         cum_sum: int,
             the cumulative sum of the timeserie (including the timeserie
             anomaly
-        cum_sum: int,
+        cum_sum_streamAnomaly: int,
             the cumulative sum of the stream anomaly
         output: str,
             path to the folder in which the ouput will be written
@@ -48,6 +48,7 @@ class ModelTimeserie():
                  cum_sum_streamAnomaly,
                  output,
                  logger):
+
         # define normal timeserie
         self.cum_sum = cum_sum
         self.duration = duration
@@ -60,8 +61,6 @@ class ModelTimeserie():
 
         self.logger = logger
 
-    #def generate_tsAnomaly(self):
-    #
     @staticmethod
     def _generate_whitenoise(cum_sum, duration):
 
