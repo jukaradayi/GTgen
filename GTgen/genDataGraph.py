@@ -97,6 +97,7 @@ class DataGraph():
             self.weight[prev_idx:prev_idx+num] =  val
             prev_idx += num
 
+        self.n_cpu = 10
     @property
     def sum_normality_weight(self):
         #sum(self.weight)
@@ -157,6 +158,13 @@ class DataGraph():
             
 
         """
+        def _fit_nodes(an_node, an_degree, degree_list):
+                # Get available nodes and pick one at random
+                candidate_indices = np.where(
+                        degree_list[:,1] >=  an_degree)
+                return np.random.choice(candidate_indices[0])
+    
+
 
         # check realisation is at least possible:
         anomaly_degrees = sorted(
@@ -165,6 +173,10 @@ class DataGraph():
         mask = []
         antimask = []
 
+        # for each node of the anomaly, check that a node with sufficient degree
+        # exists in normal graph.
+        import time
+        t0 = time.time()
         for deg in anomaly_degrees:
             mask = [idx for idx in range(
                 len(self.global_degree_list[:,1])) if idx not in antimask]
@@ -173,12 +185,14 @@ class DataGraph():
                 raise ValueError('cannot fit anomaly in global graph')
             else:
                 antimask.append(mask[max_idx])
-
         has_duplicate_node = True
         node_selection = []
 
         # place anomaly in global graph
         while (has_duplicate_node):
+            #ipdb.set_trace()
+            #node_selection = Parallel(n_jobs=self.n_cpu)(
+            #        delayed(_fit_nodes)(an_node, an_degree, self.global_degree_list) for an_node, an_degree in self.G_anomaly.degrees.items())
             for an_node, an_degree in self.G_anomaly.degrees.items():
 
                 # Get available nodes and pick one at random
@@ -193,6 +207,8 @@ class DataGraph():
                     break
 
                 node_selection.append(candidate_node)
+                #if len(node_selection) != len(set(node_selection)):
+                #    has_duplicate_node = True
             else:
                 # when nodes are picked, substract anomaly degrees 
                 has_duplicate_node = False

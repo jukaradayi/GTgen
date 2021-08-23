@@ -2,14 +2,25 @@
 """Setup script for the GTgen package"""
 
 import codecs
-import setuptools
 import GTgen
 
-setuptools.setup(
+from setuptools import setup, find_packages, Extension
+from glob import glob
+from Cython.Build import cythonize
+
+extensions = [Extension('edge_swap',
+                        ['GTgen/edge_swap.pyx'],
+                         extra_compile_args=["-std=c++11"],
+                         extra_link_args=["-std=c++11"]
+                         )]
+
+
+setup(
     # general description
     name='GTgen',
     description='Generate random graphs and timeseries, with anomalies',
     #version=tde.__version__,
+    ext_modules=cythonize(extensions),
     long_description=open('README.md').read(),
     license='LICENSE.txt',
 
@@ -23,7 +34,7 @@ setuptools.setup(
     tests_require=['pytest'],
 
     # packages for code and data
-    packages=setuptools.find_packages(),
+    packages=find_packages(),
     #package_data={'tde': ['share/*']},
 
     # metadata for upload to PyPI

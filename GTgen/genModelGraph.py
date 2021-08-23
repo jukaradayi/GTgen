@@ -1,18 +1,22 @@
 """
-    Generate weighted graph G_n with "graph anomaly" G_gan and "link stream anomaly" G_san.
-    A "graph anomaly" is an irregularity in the graph that only occurs in the 
-    graph, a "link stream anomaly" is an irregularity in the graph where the
+    Generate weighted graph G_n with anomalies.
+    The anomaly, noted as `G_an` is an irregularity in the graph that only occurs in the is an irregularity in the graph where the
     weighted edges involved are also involved in a link stream anomaly (i.e.
     occur at the time where a timeserie anomaly occurs).
 
-    The weighted graph G_n is generated using first an erdos renyii
-    and adding weights (TODO random +1 distributed ?), then adding 
-    "small" (TODO to be defined) G_gan erdos renyii as "graph anomaly",
-    and finally adding "small" (TODO to be defined) G_lsan erdos renyii as 
-    "link stream anomaly".
+    The weighted graph G_n is generated using first an erdos renyi,
+    then adding "small" (TODO sure ?) erdos renyi as "graph anomalies" denser parts of the graph,
+    and before adding the anomaly `G_an` erdos renyii as "link stream anomaly".
+    The weights are initialised to 1 for all the created edges, and 
+    if a multiple edge is created when creating the union of `G_n` and 
+    `G_an`, the edges are merged into a simple edge and the weight is 
+    increased by 1.
+    Finally, we add the weights by picking edges randomly on the total graph
+    `G_n + G_an` and increasing the weight of the edges by 1, until the
+    sum of the weights reaches `nInteractions` given in input.
 """
 import os
-import ipdb
+#import ipdb
 import time
 import numpy as np
 from GTgen.graph import *
@@ -114,7 +118,6 @@ class ModelGraph():
         normality_model.run()
         self.logger.debug(f'normal graph edges:\n'
             '{normality_model.graph.edges}')
-        print(len(normality_model.graph.weight))
         self.G_normal += normality_model.graph
 
     def generate_graphAnomaly(self):
@@ -136,7 +139,6 @@ class ModelGraph():
                               logger=self.logger)
 
             anomaly_model.run()
-            print(len(anomaly_model.graph.weight))
             self.logger.debug(f'graph anomalies edges:\n'
                 '{anomaly_model.graph.edges}')
             self.G_normal += anomaly_model.graph
@@ -174,7 +176,6 @@ class ModelGraph():
             reached
         """
         sum_weights = np.sum(graph.weight)
-        print(f'{sum_weights}, {nInteractions}')
         while sum_weights < nInteractions:
             edge_idx = np.random.choice(len(graph.edges))
             graph.weight[edge_idx] += 1
