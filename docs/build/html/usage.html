@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage &mdash; GTgen 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Python API Documentation" href="python/index.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            GTgen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#yaml-configuration">Yaml configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-details">Implementation details</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="python/index.html">Python API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GTgen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usage">
+<span id="id1"></span><h1>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h1>
+<ul class="simple">
+<li><p>Once the package is installed, to run a generation, you need to configure your model using a yaml file. Examples can be found in the <em>example/</em> folder in the root of the package.</p></li>
+<li><p>To generate using a yaml file:</p>
+<ul>
+<li><p><strong>python GTgen/generate.py -y &lt;PATH_TO_YAML&gt; -o &lt;OUTPUT_FOLDER&gt;</strong></p></li>
+</ul>
+</li>
+</ul>
+<section id="yaml-configuration">
+<h2>Yaml configuration<a class="headerlink" href="#yaml-configuration" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Below you will find the details of the yaml configuration file.</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Graph</span><span class="p">:</span>
+    <span class="n">generate_data</span><span class="p">:</span> <span class="kc">True</span> <span class="c1"># generate a graph using a real dataset,</span>
+    <span class="n">data_params</span><span class="p">:</span>
+        <span class="n">degree</span><span class="p">:</span> <span class="s2">&quot;&lt;PATH_TO_DEGREE_SEQUENCE&gt;&quot;</span>
+        <span class="n">weight</span><span class="p">:</span> <span class="s2">&quot;&lt;PATH_TO_WEIGHT_DISTRIBUTION&gt;&quot;</span>
+        <span class="n">numberOfAnomalies</span><span class="p">:</span> <span class="mi">1</span> <span class="c1"># number of anomalies to add to the graph.</span>
+        <span class="n">n_anomaly</span><span class="p">:</span> <span class="mi">50</span> <span class="c1"># number of nodes of the added anomaly</span>
+        <span class="n">m_anomaly</span><span class="p">:</span> <span class="mi">1000</span> <span class="c1"># number of edges of the added anomaly</span>
+        <span class="n">N_swap1</span><span class="p">:</span> <span class="mi">10</span> <span class="c1"># N_swap1 * n_edges swaps will be performed on the graph without anomalies, where n_edges is the number of edges of the graph without anomalies</span>
+        <span class="n">N_swap2</span><span class="p">:</span> <span class="mi">10</span> <span class="c1"># N_swap2 * n_edges_full swaps will be performed on the graph with anomalies, where n_edges_full is the number of edges of the graph with anomalies</span>
+
+    <span class="n">generate_model</span><span class="p">:</span> <span class="kc">False</span> <span class="c1"># generate a graph using an Erdos-Renyii model</span>
+    <span class="n">model_params</span><span class="p">:</span>
+        <span class="n">n_graphAnomaly</span><span class="p">:</span> <span class="mi">1</span> <span class="c1"># number of smaller, more denser Erdos-Renyii &quot;anomalies&quot; to add to the big Erdos-Renyii graph. These anomalies won&#39;t be used to generate the &quot;link-stream&quot; anomaly</span>
+        <span class="n">n_streamAnomaly</span><span class="p">:</span> <span class="mi">1</span> <span class="c1"># number of anomalies that will be used to generate the &quot;link-stream&quot; anomaly</span>
+        <span class="n">nNodes</span><span class="p">:</span> <span class="mi">15</span> <span class="c1"># number of node of the global graph</span>
+        <span class="n">nNodes_graphAnomaly</span><span class="p">:</span> <span class="mi">5</span> <span class="c1"># number of node of the graph anomaly</span>
+        <span class="n">nNodes_streamAnomaly</span><span class="p">:</span> <span class="mi">5</span> <span class="c1"># number of node of the stream anomaly</span>
+        <span class="n">nEdges_normality</span><span class="p">:</span> <span class="mi">30</span> <span class="c1"># number of edges of the normal graph</span>
+        <span class="n">nEdges_graphAnomaly</span><span class="p">:</span> <span class="mi">7</span> <span class="c1"># number of edges of the graph anomaly</span>
+        <span class="n">nEdges_streamAnomaly</span><span class="p">:</span> <span class="mi">10</span> <span class="c1"># number of edges of the stream anomaly</span>
+        <span class="n">nInteractions</span><span class="p">:</span> <span class="mi">87</span> <span class="c1"># sum of the weights of the normal graph. Should be equal to &quot;cum_sum&quot; value of Timeserie - model_param - cum_sum</span>
+        <span class="n">nInteractions_streamAnomaly</span><span class="p">:</span> <span class="mi">25</span> <span class="c1"># sum of the weights of the stream anomaly - should be equal to TimeSerie - model_param - cum_sum_streamAnomaly</span>
+
+<span class="n">TimeSerie</span><span class="p">:</span>
+    <span class="n">generate_data</span><span class="p">:</span> <span class="kc">True</span> <span class="c1"># generate a timeserie by shuffling a real timeserie</span>
+    <span class="n">data_params</span><span class="p">:</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="s2">&quot;&lt;PATH_TO_TS&gt;&quot;</span>
+        <span class="n">anomaly_type</span><span class="p">:</span> <span class="s2">&quot;regimeShift&quot;</span> <span class="c1"># type of anomaly added - can either be &quot;peak&quot; for a &quot;small&quot; section with higher values, or &quot;regimeShift&quot; for a large section with different values</span>
+        <span class="n">anomaly_length</span><span class="p">:</span> <span class="mf">0.1</span> <span class="c1"># percentage of the total duration used for the anomaly - should be a value between 0 and 1</span>
+    <span class="n">generate_model</span><span class="p">:</span> <span class="kc">False</span> <span class="c1"># generate a timeserie by using a white noise model</span>
+    <span class="n">model_params</span><span class="p">:</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="mi">28</span> <span class="c1"># number of timestamps to be generated for the &quot;normal&quot; timeserie</span>
+        <span class="n">duration_streamAnomaly</span><span class="p">:</span> <span class="mi">10</span>  <span class="c1"># number of timestamps for the stream &quot;anomaly&quot;</span>
+        <span class="n">duration_tsAnomaly</span><span class="p">:</span> <span class="mi">10</span> <span class="c1"># number of timestamps for the &quot;timeserie&quot; anomaly. Those won&#39;t be used to generate the stream anomaly.</span>
+        <span class="n">cum_sum</span><span class="p">:</span> <span class="mi">87</span> <span class="c1"># sum of the values of the timeseries. should be equal to &quot;nInteractions&quot; vlaue of Graph - model_params - nInteractions</span>
+        <span class="n">cum_sum_streamAnomaly</span><span class="p">:</span> <span class="mi">25</span> <span class="c1"># sum of the values of the stream_anomaly - should be equal to graph - model_param - nInteractions_streamAnomaly</span>
+</pre></div>
+</div>
+</section>
+<section id="implementation-details">
+<h2>Implementation details<a class="headerlink" href="#implementation-details" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>When generating a graph (resp. timeserie) using real data, the anomalies are added by “reserving” some of the nodes and weights of the graph (resp. some timestamps and values of the timeseries).</p>
+<ul>
+<li><p>We then generate a “normal” graph (resp. timeserie) by generating using havel hakimi a graph with the resulting degree sequence, then swapping the edges to get a “uniformly” randomly picked graph with this degree distribution (resp. shuffling the values of the timeserie).</p></li>
+<li><p>For example, if the input degree sequence of the graph is [5,4,2,1] (which means 5 nodes of degree 1, 4 nodes of degree 2, 2 nodes of degree 3 and 1 node of degree 4), if we want 1 edge to be abnormal, we can reserve the following degree sequence for the anomaly [1, 0, 0, 0] and generate the “normal” graph using the resulting degree sequence [4,4,2,1].</p></li>
+</ul>
+</li>
+<li><p>When generating a graph (resp. timeserie) using a model, the anomalies are added by “plugging” generated anomalies to the graph (resp. timeserie).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="python/index.html" class="btn btn-neutral float-right" title="Python API Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, ComplexNetworks.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

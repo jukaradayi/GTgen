@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generate Graph &mdash; GTgen 1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Timeserie" href="timeserie.html" />
+    <link rel="prev" title="Generate Data Graph" href="genDataGraph.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GTgen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Python API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="graph.html">Graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphModels.html">Graph Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="genDataGraph.html">Generate Data Graph</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Generate Graph</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#genmodelgraph-class">GenModelGraph Class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="timeserie.html">Timeserie</a></li>
+<li class="toctree-l2"><a class="reference internal" href="genTimeserie.html">Generate Timeserie</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GTgen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Python API Documentation</a></li>
+      <li class="breadcrumb-item active">Generate Graph</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/python/genModelGraph.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="generate-graph">
+<span id="genallmodel-class"></span><h1>Generate Graph<a class="headerlink" href="#generate-graph" title="Permalink to this heading"></a></h1>
+<nav class="contents local" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#genmodelgraph-class" id="id1">GenModelGraph Class</a></p></li>
+</ul>
+</nav>
+<section id="genmodelgraph-class">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">GenModelGraph Class</a><a class="headerlink" href="#genmodelgraph-class" title="Permalink to this heading"></a></h2>
+<span class="target" id="module-GTgen.genModelGraph"></span><p>Generate weighted graph G_n with anomalies.
+The anomaly, noted as <cite>G_an</cite> is an irregularity in the graph that only occurs in the is an irregularity in the graph where the
+weighted edges involved are also involved in a link stream anomaly (i.e.
+occur at the time where a timeserie anomaly occurs).</p>
+<p>The weighted graph G_n is generated using first an erdos renyi,
+then adding “small” (TODO sure ?) erdos renyi as “graph anomalies” denser parts of the graph,
+and before adding the anomaly <cite>G_an</cite> erdos renyii as “link stream anomaly”.
+The weights are initialised to 1 for all the created edges, and
+if a multiple edge is created when creating the union of <cite>G_n</cite> and
+<cite>G_an</cite>, the edges are merged into a simple edge and the weight is
+increased by 1.
+Finally, we add the weights by picking edges randomly on the total graph
+<cite>G_n + G_an</cite> and increasing the weight of the edges by 1, until the
+sum of the weights reaches <cite>nInteractions</cite> given in input.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GTgen.genModelGraph.</span></span><span class="sig-name descname"><span class="pre">ModelGraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_graphAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_streamAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNodes_graphAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nNodes_streamAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nEdges_normality</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nEdges_graphAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nEdges_streamAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nInteractions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nInteractions_streamAnomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="simple">
+<dt>n_graphAnomaly: int,</dt><dd><p>number of “graph anomaly”</p>
+</dd>
+<dt>n_streamAnomaly: int,</dt><dd><p>number of “link stream anomaly”</p>
+</dd>
+<dt>nNodes: int,</dt><dd><p>number of nodes of “complete” graph (normality + all anomalies)</p>
+</dd>
+<dt>nNodes_graphAnomaly: int,</dt><dd><p>number of nodes to be used in anomaly (TODO: maybe max so not all anomaly are the same?)</p>
+</dd>
+<dt>nNodes_streamAnomaly: int,</dt><dd><p>number of Nodes in stream anomaly</p>
+</dd>
+<dt>nEdges_normality: int,</dt><dd><p>number of edges to generatefor normal graph</p>
+</dd>
+<dt>nEdges_graphAnomaly: int,</dt><dd><p>number of edges in graph Anomaly</p>
+</dd>
+<dt>nEdges_streamAnomaly: int,</dt><dd><p>number of edges in stream anomaly</p>
+</dd>
+<dt>nInteractions: int,</dt><dd><p>number of interactions of normal graph + anomaly graph.
+The weights will be set uniformly at random so that their sum is
+the number of interactions. should be higher than number of edges.</p>
+</dd>
+<dt>nInteractions_streamAnomaly: int,</dt><dd><p>same thing for stream anomaly graph.</p>
+</dd>
+<dt>output: str,</dt><dd><p>folder in which normal and anomaly graph are written</p>
+</dd>
+<dt>seed: int,</dt><dd><p>random seed for numpy (if not fixed already)</p>
+</dd>
+<dt>logger: logger,</dt><dd><p>a logger</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph.generate_normality">
+<span class="sig-name descname"><span class="pre">generate_normality</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph.generate_normality"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph.generate_normality" title="Permalink to this definition"></a></dt>
+<dd><p>Generate graph with Erdos-Renyi model</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph.generate_graphAnomaly">
+<span class="sig-name descname"><span class="pre">generate_graphAnomaly</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph.generate_graphAnomaly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph.generate_graphAnomaly" title="Permalink to this definition"></a></dt>
+<dd><p>Generate graph-anomalies with Erdos-Renyi model
+and add it to normal graph.
+When an edge of the graph-anomaly already exist in normal graph,
+they are fused as one simple edge, and its weight is increased by
+one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph.generate_streamAnomaly">
+<span class="sig-name descname"><span class="pre">generate_streamAnomaly</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph.generate_streamAnomaly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph.generate_streamAnomaly" title="Permalink to this definition"></a></dt>
+<dd><p>Generate Stream Anomaly with Erdos-Renyi Model.
+The stream anomaly shares its node with the normal graph, but
+is stored and written separately.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph.set_weights">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nInteractions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">graph</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph.set_weights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph.set_weights" title="Permalink to this definition"></a></dt>
+<dd><p>Randomly choose edges to increment weight until nInteractions is
+reached</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GTgen.genModelGraph.ModelGraph.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GTgen/genModelGraph.html#ModelGraph.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GTgen.genModelGraph.ModelGraph.run" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="genDataGraph.html" class="btn btn-neutral float-left" title="Generate Data Graph" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="timeserie.html" class="btn btn-neutral float-right" title="Timeserie" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, ComplexNetworks.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

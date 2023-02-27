@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Modeling &mdash; GTgen 1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GTgen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../python/index.html">Python API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GTgen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Data Modeling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/random_graph_generation/data_model.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-modeling">
+<span id="data-model"></span><h1>Data Modeling<a class="headerlink" href="#data-modeling" title="Permalink to this heading"></a></h1>
+<ul class="simple">
+<li><p>One pipeline used to generate graph uses weights sequences and degree sequences
+measured from real data (TODO “real data” sonne moche..?).
+We assume that anomalies are present in the “real data” we use.</p></li>
+</ul>
+<section id="pipeline">
+<h2>Pipeline<a class="headerlink" href="#pipeline" title="Permalink to this heading"></a></h2>
+<blockquote>
+<div><dl>
+<dt>The complete process is to:</dt><dd><ul>
+<li><p>take the degree sequence and weight sequence from real data</p></li>
+<li><p>Generate the anomaly G_an using an Erdos Renyi model</p></li>
+<li><p>Randomly choose, using the degree sequence D, the set of nodes S_n that will
+host the Erdos-Renyi generated anomaly (described by the input parameters).
+Substract to degree sequence D_n (sequence D on nodes S_n) the degree sequence
+D_an of the anomaly to get ‘normality’ degree sequence D_norm.</p></li>
+<li><p>Using D_norm, generate a uniformly randomly picked simple graph G_n that fits this sequence.
+We use a Havel-Hakimi generator to get a graph that fits D_norm, then perform N_swap
+edge swap to get a uniformly randomly picked simple graph that fits D_norm (typically N_swap = 10*number of edges)</p></li>
+<li><p>Check that union of G_n and G_an is a simple graph</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If it is, :
+-GREAT</p></li>
+<li><p>If not</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>perform random swaps in G_n and G_an, with the edges involved in multiple edges and another</p></li>
+</ul>
+<blockquote>
+<div><p>randomly picked edge in either G_n or G_an (chosen by a coin toss)</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Perform again N_swap (N_swap2.. ?) edge swaps in G_n to get uniformly randomly picked graph
+in the set of graphs with degree sequence D_norm (previous steps biased the graph).
+The edge swaps are chosen in a way such that it doesn’t create multiple edges (bias.. ?)</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, ComplexNetworks.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

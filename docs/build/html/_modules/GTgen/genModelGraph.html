@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GTgen.genModelGraph &mdash; GTgen 1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            GTgen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../python/index.html">Python API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GTgen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GTgen.genModelGraph</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GTgen.genModelGraph</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate weighted graph G_n with anomalies.</span>
+<span class="sd">    The anomaly, noted as `G_an` is an irregularity in the graph that only occurs in the is an irregularity in the graph where the</span>
+<span class="sd">    weighted edges involved are also involved in a link stream anomaly (i.e.</span>
+<span class="sd">    occur at the time where a timeserie anomaly occurs).</span>
+
+<span class="sd">    The weighted graph G_n is generated using first an erdos renyi,</span>
+<span class="sd">    then adding &quot;small&quot; (TODO sure ?) erdos renyi as &quot;graph anomalies&quot; denser parts of the graph,</span>
+<span class="sd">    and before adding the anomaly `G_an` erdos renyii as &quot;link stream anomaly&quot;.</span>
+<span class="sd">    The weights are initialised to 1 for all the created edges, and </span>
+<span class="sd">    if a multiple edge is created when creating the union of `G_n` and </span>
+<span class="sd">    `G_an`, the edges are merged into a simple edge and the weight is </span>
+<span class="sd">    increased by 1.</span>
+<span class="sd">    Finally, we add the weights by picking edges randomly on the total graph</span>
+<span class="sd">    `G_n + G_an` and increasing the weight of the edges by 1, until the</span>
+<span class="sd">    sum of the weights reaches `nInteractions` given in input.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="c1">#import ipdb</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">GTgen.graph</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">GTgen.graphModels</span> <span class="kn">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="ModelGraph"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph">[docs]</a><span class="k">class</span> <span class="nc">ModelGraph</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Attributes:</span>
+<span class="sd">        -----------</span>
+<span class="sd">        n_graphAnomaly: int,</span>
+<span class="sd">            number of &quot;graph anomaly&quot;</span>
+<span class="sd">        n_streamAnomaly: int,</span>
+<span class="sd">            number of &quot;link stream anomaly&quot;</span>
+<span class="sd">        nNodes: int,</span>
+<span class="sd">            number of nodes of &quot;complete&quot; graph (normality + all anomalies)</span>
+<span class="sd">        nNodes_graphAnomaly: int,</span>
+<span class="sd">            number of nodes to be used in anomaly (TODO: maybe max so not all anomaly are the same?)</span>
+<span class="sd">        nNodes_streamAnomaly: int,</span>
+<span class="sd">            number of Nodes in stream anomaly</span>
+<span class="sd">        nEdges_normality: int,</span>
+<span class="sd">            number of edges to generatefor normal graph</span>
+<span class="sd">        nEdges_graphAnomaly: int,</span>
+<span class="sd">            number of edges in graph Anomaly</span>
+<span class="sd">        nEdges_streamAnomaly: int,</span>
+<span class="sd">            number of edges in stream anomaly</span>
+<span class="sd">        nInteractions: int,</span>
+<span class="sd">            number of interactions of normal graph + anomaly graph. </span>
+<span class="sd">            The weights will be set uniformly at random so that their sum is</span>
+<span class="sd">            the number of interactions. should be higher than number of edges.</span>
+<span class="sd">        nInteractions_streamAnomaly: int,</span>
+<span class="sd">            same thing for stream anomaly graph.</span>
+<span class="sd">        output: str,</span>
+<span class="sd">            folder in which normal and anomaly graph are written</span>
+<span class="sd">        seed: int,</span>
+<span class="sd">            random seed for numpy (if not fixed already)</span>
+<span class="sd">        logger: logger,</span>
+<span class="sd">            a logger</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">n_graphAnomaly</span><span class="p">,</span>
+            <span class="n">n_streamAnomaly</span><span class="p">,</span>
+            <span class="n">nNodes</span><span class="p">,</span>
+            <span class="n">nNodes_graphAnomaly</span><span class="p">,</span>
+            <span class="n">nNodes_streamAnomaly</span><span class="p">,</span>
+            <span class="n">nEdges_normality</span><span class="p">,</span>
+            <span class="n">nEdges_graphAnomaly</span><span class="p">,</span>
+            <span class="n">nEdges_streamAnomaly</span><span class="p">,</span>
+            <span class="n">nInteractions</span><span class="p">,</span>
+            <span class="n">nInteractions_streamAnomaly</span><span class="p">,</span>
+            <span class="n">output</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_graphAnomaly</span> <span class="o">=</span> <span class="n">n_graphAnomaly</span> 
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_streamAnomaly</span> <span class="o">=</span> <span class="n">n_streamAnomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nNodes</span> <span class="o">=</span> <span class="n">nNodes</span>
+
+        <span class="c1"># Number of nodes involved in the anomalies</span>
+        <span class="c1"># Must be lower than total number of nodes</span>
+        <span class="k">assert</span> <span class="n">nNodes_graphAnomaly</span> <span class="o">&lt;</span> <span class="n">nNodes</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;graph anomaly should be &quot;</span>
+                    <span class="s2">&quot;smaller than normal graph&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">nNodes_streamAnomaly</span> <span class="o">&lt;</span> <span class="n">nNodes</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;stream anomaly should be &quot;</span>
+                    <span class="s2">&quot;smaller than normal graph&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nNodes_graphAnomaly</span> <span class="o">=</span> <span class="n">nNodes_graphAnomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nNodes_streamAnomaly</span> <span class="o">=</span> <span class="n">nNodes_streamAnomaly</span>
+
+        <span class="c1"># Number of edges of each graph </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_normality</span> <span class="o">=</span> <span class="n">nEdges_normality</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_graphAnomaly</span> <span class="o">=</span> <span class="n">nEdges_graphAnomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_streamAnomaly</span> <span class="o">=</span> <span class="n">nEdges_streamAnomaly</span>
+
+        <span class="c1"># Define Number of interaction required</span>
+        <span class="k">assert</span> <span class="n">nInteractions</span> <span class="o">&gt;=</span> <span class="n">nEdges_normality</span> <span class="o">+</span> <span class="n">nEdges_graphAnomaly</span>
+        <span class="k">assert</span> <span class="n">nInteractions_streamAnomaly</span> <span class="o">&gt;=</span> <span class="n">nEdges_streamAnomaly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nInteractions</span> <span class="o">=</span> <span class="n">nInteractions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nInteractions_streamAnomaly</span> <span class="o">=</span> <span class="n">nInteractions_streamAnomaly</span>
+
+        <span class="c1"># logger &amp; output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">output</span>
+
+        <span class="c1"># instantiate Normal Graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">nodes</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>
+                <span class="n">merge_multiedges</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ModelGraph.generate_normality"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph.generate_normality">[docs]</a>    <span class="k">def</span> <span class="nf">generate_normality</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate graph with Erdos-Renyi model &quot;&quot;&quot;</span>
+
+        <span class="n">normality_model</span> <span class="o">=</span> <span class="n">GNM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_normality</span><span class="p">,</span>
+                              <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">nodes</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes</span><span class="p">)),</span> <span class="c1"># todo check</span>
+                              <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">normality_model</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;normal graph edges:</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;</span><span class="si">{normality_model.graph.edges}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span> <span class="o">+=</span> <span class="n">normality_model</span><span class="o">.</span><span class="n">graph</span></div>
+
+<div class="viewcode-block" id="ModelGraph.generate_graphAnomaly"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph.generate_graphAnomaly">[docs]</a>    <span class="k">def</span> <span class="nf">generate_graphAnomaly</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate graph-anomalies with Erdos-Renyi model </span>
+<span class="sd">            and add it to normal graph.</span>
+<span class="sd">            When an edge of the graph-anomaly already exist in normal graph,</span>
+<span class="sd">            they are fused as one simple edge, and its weight is increased by</span>
+<span class="sd">            one.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_graphAnomaly</span><span class="p">):</span>
+            <span class="c1"># choose nodes at random</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes</span><span class="p">),</span> 
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">nNodes_graphAnomaly</span><span class="p">,</span>
+                                         <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="n">anomaly_model</span> <span class="o">=</span> <span class="n">GNM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes_graphAnomaly</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_graphAnomaly</span><span class="p">,</span>
+                              <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span>
+                              <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+
+            <span class="n">anomaly_model</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;graph anomalies edges:</span><span class="se">\n</span><span class="s1">&#39;</span>
+                <span class="s1">&#39;</span><span class="si">{anomaly_model.graph.edges}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span> <span class="o">+=</span> <span class="n">anomaly_model</span><span class="o">.</span><span class="n">graph</span></div>
+
+<div class="viewcode-block" id="ModelGraph.generate_streamAnomaly"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph.generate_streamAnomaly">[docs]</a>    <span class="k">def</span> <span class="nf">generate_streamAnomaly</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Generate Stream Anomaly with Erdos-Renyi Model.</span>
+<span class="sd">            The stream anomaly shares its node with the normal graph, but</span>
+<span class="sd">            is stored and written separately.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">nodes</span><span class="o">=</span><span class="nb">set</span><span class="p">(),</span>
+                <span class="n">degrees</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>
+                <span class="n">merge_multiedges</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_streamAnomaly</span><span class="p">):</span>
+            <span class="c1"># choose nodes at random</span>
+            <span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes</span><span class="p">),</span> 
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">nNodes_streamAnomaly</span><span class="p">,</span>
+                                         <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+            <span class="n">anomaly_model</span> <span class="o">=</span> <span class="n">GNM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nNodes_streamAnomaly</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">nEdges_streamAnomaly</span><span class="p">,</span>
+                              <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">nodes</span><span class="o">=</span><span class="n">nodes</span><span class="p">,</span> <span class="c1"># todo check</span>
+                              <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+            <span class="n">anomaly_model</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;stream anomaly graph edges:</span><span class="se">\n</span><span class="s1"> &#39;</span>
+                <span class="s1">&#39;</span><span class="si">{anomaly_model.graph.edges}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span> <span class="o">+=</span> <span class="n">anomaly_model</span><span class="o">.</span><span class="n">graph</span></div>
+
+<div class="viewcode-block" id="ModelGraph.set_weights"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph.set_weights">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">set_weights</span><span class="p">(</span><span class="n">nInteractions</span><span class="p">,</span> <span class="n">graph</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Randomly choose edges to increment weight until nInteractions is</span>
+<span class="sd">            reached</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sum_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">sum_weights</span> <span class="o">&lt;</span> <span class="n">nInteractions</span><span class="p">:</span>
+            <span class="n">edge_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">))</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="n">edge_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">sum_weights</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ModelGraph.run"><a class="viewcode-back" href="../../python/genModelGraph.html#GTgen.genModelGraph.ModelGraph.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generating normal graph&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_normality</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generating graph-anomaly&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_graphAnomaly</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generating stream-anomaly&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_streamAnomaly</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;generate weights&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nInteractions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nInteractions_streamAnomaly</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;writing graphs&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_normal</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                                              <span class="s1">&#39;normal_graph.txt&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G_anomaly</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                                               <span class="s1">&#39;anomaly_graph.txt&#39;</span><span class="p">))</span></div></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, ComplexNetworks.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
