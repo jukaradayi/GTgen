@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Normality And Anomalies &mdash; GTgen 1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GTgen
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../python/index.html">Python API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GTgen</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Normality And Anomalies</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/benchmark/normality_and_anomalies.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="normality-and-anomalies">
+<span id="id1"></span><h1>Normality And Anomalies<a class="headerlink" href="#normality-and-anomalies" title="Permalink to this heading"></a></h1>
+<ul>
+<li><p>In the benchmark, we define what we call the “normality” state, and the
+“anomaly”. When working with models, we call anomaly part of the model
+with overall different properties (e.g. subpart of a graph with different density than the complete graph).
+When working with real datasets, we assume that anomalies are already
+present in the data.</p></li>
+<li><p>The link-stream are generated using the package GENBIP (TODO link
+to genbip) to generate bipartite graph where the top nodes are the edges
+of the graph, with their weights as top nodes degrees, and the bottom
+nodes are the timestamps with the value of the timeserie as bottom
+nodes degrees.</p></li>
+<li><p>Considering this, when using datasets, we assume anomalies are already
+in the dataset and generate link-stream using the measured weighted graph,
+and the measured timeserie as top and bottom nodes.
+When using models, we use models to generate graphs and timeseries
+(e.g. Erdos-Renyi for graph, or white noise for timeserie), and we
+add anomalies on top of that.
+For this purpose, we then define two types of anomalies:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>graph/timeseries anomalies: an anomaly that is present either in
+the graph or the timeserien but not in both. TODO plot images to clarify
+TODO explain more .. ?</p></li>
+<li><p>stream-anomalies an anomaly that is present both in the graph and
+the timeserie. This means that when generating the link-stream,
+the edges involved in the graph anomaly are linked to the timestamps
+involved in the timeseries anomaly
+TODO plot</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, ComplexNetworks.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
